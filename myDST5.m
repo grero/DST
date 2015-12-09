@@ -1,6 +1,10 @@
 function myDST5(homeDir,results)
 global handle whichScreen
 KbName('UnifyKeyNames');
+%TODO: Allow smaller targets at the centre of the big targets
+% + +   + +
+%  *     *
+% + +
 
 % Trigger
 % (11000000) Start of Session 
@@ -19,6 +23,8 @@ KbName('UnifyKeyNames');
 % (00000110) Start of Reward Feedback
 % (00000111) Start of Failure Feedback 
 % (00100000) End of Trial
+
+% (00001111) Start of Microstimulation
 
 %%% Save parameters in Results file
 
@@ -80,6 +86,19 @@ eyesquareSize = 10;
 eyeRectOriginal = [0 0 eyesquareSize eyesquareSize];
 targetColor_mod = targetColor/255;
 distractorColor_mod = distractorColor/255;
+
+channel = results.parameters.channel;
+Stimulation_onset = results.parameters.stimonset;
+first_pulseamp = results.parameters.first_pulseamp; %mV
+first_pulseDur = results.parameters.first_pulsedur; %uSec
+second_pulseamp = results.parameters.second_pulseamp; %mV
+second_pulseDur = results.parameters.second_pulsedur; %uSec
+numPulses = results.parameters.numpulses; % if set to zero, means continuous 
+interDur = results.parameters.interdur; %uSec
+stimprob = results.parameters.stimprob;
+Rate = results.parameters.rate; %Hz
+StimRef = results.parameters.stimref; % 1= pre-stim, 2= target 3= delay, 4= response
+
 rewardbeep = MakeBeep(2000,0.2);
 failurebeep = MakeBeep(100,0.2);
 Snd('Open')
@@ -152,7 +171,7 @@ try
     %whichScreen = 2;
     
     if mouse == 1
-        whichScreen = 1;
+        whichScreen = 0;
     end
     % Open a new window.
     [ window, windowRect ] = Screen('OpenWindow', whichScreen,backgroundColor);
@@ -294,6 +313,11 @@ try
     maxcorrecttrials_count = 0;
     % totalmanualreward_count = 0;
     
+    % open stimulator object if stimprob ~= 0
+    if stimprob ~= 0
+        % initializing the stimulator object
+        err = StimController(channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses);
+    end
     %before we enter loop, set up reward and trigger objects
     %trigger object
     % Create a Digital I/O Object with the digitalio function
@@ -313,8 +337,12 @@ try
     % set(AO,'SampleRate',8000);
     
     SendEvent2([1 1 0 0 0 0 0 0],dio);
+    ncols = bitget(numDivisionsGrid(1),1:6);
+    nrows = bitget(numDivisionsGrid(2),1:6);
+    SendEvent2([1 1 ncols],dio); %maximum column
+    SendEvent2([1 1 nrows],dio); %maximum row
     if mouse == 0
-        Eyelink('Message', num2str([1 1 0 0 0 0 0 0]));
+        Eyelink('Message', num2str([1 1 ncols nrows]));
     end
     
     while continueTask == 1 && floor(whichTrial/numLocations) ~= blocknum && maxcorrecttrials_count < maxcorrecttrials
@@ -330,6 +358,7 @@ try
         wrongTarget = 0;
         reward = 0;
         manualreward = 0;
+        stimulation = 0;
         spacecount = 0;
         
         estarttrial = 0;
@@ -455,18 +484,8 @@ try
             Screen('FillOval', window, fixcol, fixRect);
             
             if respond_center == 1
-                for Xpos = min(locations(:,1)):max(locations(:,1))
-                    for Ypos = min(locations(:,2)):max(locations(:,2))
-                        if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                            XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                            [X,Y] = RectCenter(XYRect);
-                            Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                        end
-                    end
-                end
-            end
-            
-            if respond_center == 0
+                ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
+            else
                 ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
             end
             % Screen('Flip', window);
@@ -547,18 +566,8 @@ try
                 Screen('FillOval', window, fixcol, fixRect);
                 if respond_center == 0
                     ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-                end
-                
-                if respond_center == 1
-                    for Xpos = min(locations(:,1)):max(locations(:,1))
-                        for Ypos = min(locations(:,2)):max(locations(:,2))
-                            if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                                [X,Y] = RectCenter(XYRect);
-                                Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                            end
-                        end
-                    end
+                else
+                   ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 
                 % Screen('Flip', window);
@@ -597,13 +606,26 @@ try
                     breakFixation = GetSecs - timeSessionStarts;
                     blkincompleteTrial = blkincompleteTrial + 1;
                     totalincompleteTrial = totalincompleteTrial + 1;
+                    %TODO: why are we not incrementing the trial counter here?
+                    whichTrial = whichTrial + 1;
                 end
                 inTask = 0;
                 break;
             end
-
+            
+            if StimRef == 1 && stimprob ~= 0
+                if GetSecs > timefixationend + Stimulation_onset && stimulation == 0
+                    if rand < stimprob
+                        if mouse == 0
+                            Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
+                            Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
+                        end
+                        err = PS_StartStimAllChannels(1);
+                    end
+                    stimulation = 1;
+                end
+            end
         end
-
         
         %% PRESENT CUE AND DISTRACTORS
         
@@ -653,14 +675,10 @@ try
         end
         
         if locationsTrial(1) ~= 0
-            xbin = str2num(dec2bin(locations(locationsTrial(1),1),3));
-            ybin = str2num(dec2bin(locations(locationsTrial(1),2),3));
-
-            for x = 1:3
-                xbinmod(1,x) = bitget(xbin,x);
-                ybinmod(1,x) = bitget(ybin,x);
-            end
-
+            xbinmod = bitget(locations(locationsTrial(1),1),1:6);
+            ybinmod = bitget(locations(locationsTrial(1),2),1:6);
+            
+            
             iteration = 0;
             squareTimeON = rand*(maxsquareTimeON-minsquareTimeON) + minsquareTimeON;
 
@@ -707,31 +725,23 @@ try
                     Screen('FillOval', window, fixcol, fixRect);
                     if respond_center == 0
                         ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-                    end
-                    
-                    if respond_center == 1
-                        for Xpos = min(locations(:,1)):max(locations(:,1))
-                            for Ypos = min(locations(:,2)):max(locations(:,2))
-                                if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                    XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                                    [X,Y] = RectCenter(XYRect);
-                                    Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                                end
-                            end
-                        end
+                    else
+                       ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                     end
                     % Screen('Flip', window);
                     [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                     if iteration == 1
                         vbltarget = VBLTimestamp;
                         if targetColor == [0 255 0]
-                            SendEvent2([1 0 xbinmod ybinmod],dio);
+                            SendEvent2([1 0 xbinmod],dio);
+                            SendEvent2([1 0 ybinmod],dio);
                             etarget = GetSecs;
                             if mouse == 0
                                 Eyelink('Message', num2str([1 0 xbinmod ybinmod]));
                             end
                         elseif targetColor == [255 0 0]
-                            SendEvent2([0 1 xbinmod ybinmod],dio);
+                            SendEvent2([0 1 xbinmod],dio);
+                            SendEvent2([0 1 ybinmod],dio);
                             etarget = GetSecs;
                             if mouse == 0
                                 Eyelink('Message', num2str([0 1 xbinmod ybinmod]));
@@ -753,10 +763,10 @@ try
                     axis([windowRect(1),windowRect(3),windowRect(2),windowRect(4)])
                     plotGridLines(numDivisionsGrid,squareArea,fromX,toX,fromY,toY)
 
-                     title(['Block ', num2str(ceil(whichTrial/numLocations)),'  Trial ', num2str(blTrial),'  Block: ',num2str(blkcorrectTrial),'/',...
-                num2str(blkincorrectTrial),'/',num2str(blkincompleteTrial),'  Total: ',num2str(totalcorrectTrial),'/',...
-                num2str(totalincorrectTrial),'/',num2str(totalincompleteTrial), '  (' num2str(100*totalcorrectTrial/(totalincorrectTrial+totalcorrectTrial)) '%)',...
-                '    Manual Reward = ',num2str(totalmanualreward_count)])
+                    title(['Block ', num2str(ceil(whichTrial/numLocations)),'  Trial ', num2str(blTrial),'  Block: ',num2str(blkcorrectTrial),'/',...
+                    num2str(blkincorrectTrial),'/',num2str(blkincompleteTrial),'  Total: ',num2str(totalcorrectTrial),'/',...
+                    num2str(totalincorrectTrial),'/',num2str(totalincompleteTrial), '  (' num2str(100*totalcorrectTrial/(totalincorrectTrial+totalcorrectTrial)) '%)',...
+                    '    Manual Reward = ',num2str(totalmanualreward_count)])
                     drawnow
                 else
                     if breakFixation == 0
@@ -764,6 +774,7 @@ try
                         blkincompleteTrial = blkincompleteTrial + 1;
                         totalincompleteTrial = totalincompleteTrial + 1;
                         if locations(locationsTrial(1),1) == 4 && locations(locationsTrial(1),2) == 4
+                            %TODO: which are we still doing this?
                         else
                             whichTrial = whichTrial + 1;
                         end
@@ -772,6 +783,18 @@ try
                     break;
                 end
 
+                if StimRef == 2 && stimprob ~= 0
+                    if (GetSecs > (timeStartCue + Stimulation_onset)) && stimulation == 0
+                        if rand < stimprob
+                            if mouse == 0
+                                Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
+                                Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
+                            end
+                            err = PS_StartStimAllChannels(1);
+                        end
+                        stimulation = 1;
+                    end
+                end
             end
         end
         % NOW PRESENT DISTRACTORS
@@ -828,18 +851,8 @@ try
                             Screen('FillOval', window, fixcol, fixRect);
                             if respond_center == 0
                                 ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-                            end
-                            
-                            if respond_center == 1
-                                for Xpos = min(locations(:,1)):max(locations(:,1))
-                                    for Ypos = min(locations(:,2)):max(locations(:,2))
-                                        if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                            XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                                            [X,Y] = RectCenter(XYRect);
-                                            Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                                        end
-                                    end
-                                end
+                            else
+                                ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                             end
                             % Screen('Flip', window);
                             [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
@@ -877,6 +890,7 @@ try
                                 blkincompleteTrial = blkincompleteTrial + 1;
                                 totalincompleteTrial = totalincompleteTrial + 1;
                                 if locations(locationsTrial(1),1) == 4 && locations(locationsTrial(1),2) == 4
+                                    %TODO: why are we still doing this?
                                 else
                                     whichTrial = whichTrial + 1;
                                 end
@@ -889,14 +903,8 @@ try
                 
                 % PRESENT NEXT DISTRACTOR
                 
-                xbin = str2num(dec2bin(distractor_locations(locationsTrial(d+1),1),3));
-                ybin = str2num(dec2bin(distractor_locations(locationsTrial(d+1),2),3));
-                
-                for x = 1:3
-                    xbinmod(1,x) = bitget(xbin,x);
-                    ybinmod(1,x) = bitget(ybin,x);
-                end
-
+                xbinmod = bitget(distractor_locations(locationsTrial(d+1),1),1:6);
+                ybinmod = bitget(distractor_locations(locationsTrial(d+1),2),1:6);
                 iteration = 0;
                 
                 timeIniDistractor = GetSecs;
@@ -945,18 +953,8 @@ try
                         Screen('FillOval', window, fixcol, fixRect);
                         if respond_center == 0
                             ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-                        end
-                        
-                        if respond_center == 1
-                            for Xpos = min(locations(:,1)):max(locations(:,1))
-                                for Ypos = min(locations(:,2)):max(locations(:,2))
-                                    if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                        XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                                        [X,Y] = RectCenter(XYRect);
-                                        Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                                    end
-                                end
-                            end
+                        else
+                            ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                         end
                         % Screen('Flip', window);
                         [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
@@ -965,13 +963,15 @@ try
                             vbldistractor(1,d) = VBLTimestamp;
                             if stim_sequence(d) == 1
                                 if targetColor == [0 255 0]
-                                    SendEvent2([1 0 xbinmod ybinmod],dio);
+                                    SendEvent2([1 0 xbinmod],dio);
+                                    SendEvent2([1 0 ybinmod],dio);
                                     edistractor(1,d) = GetSecs;
                                     if mouse == 0
                                         Eyelink('Message', num2str([1 0 xbinmod ybinmod]));
                                     end
                                 elseif targetColor == [255 0 0]
-                                    SendEvent2([0 1 xbinmod ybinmod],dio);
+                                    SendEvent2([0 1 xbinmod],dio);
+                                    SendEvent2([0 1 ybinmod],dio);
                                     edistractor(1,d) = GetSecs;
                                     if mouse == 0
                                         Eyelink('Message', num2str([0 1 xbinmod ybinmod]));
@@ -979,13 +979,15 @@ try
                                 end
                             elseif stim_sequence(d) == 2
                                 if distractorColor == [0 255 0]
-                                    SendEvent2([1 0 xbinmod ybinmod],dio);
+                                    SendEvent2([1 0 xbinmod],dio);
+                                    SendEvent2([1 0 ybinmod],dio);
                                     edistractor(1,d) = GetSecs;
                                     if mouse == 0
                                         Eyelink('Message', num2str([1 0 xbinmod ybinmod]));
                                     end
                                 elseif distractorColor == [255 0 0]
-                                    SendEvent2([0 1 xbinmod ybinmod],dio);
+                                    SendEvent2([0 1 xbinmod],dio);
+                                    SendEvent2([0 1 ybinmod],dio);
                                     edistractor(1,d) = GetSecs;
                                     if mouse == 0
                                         Eyelink('Message', num2str([0 1 xbinmod ybinmod]));
@@ -1027,6 +1029,7 @@ try
                             blkincompleteTrial = blkincompleteTrial + 1;
                             totalincompleteTrial = totalincompleteTrial + 1;
                             if locations(locationsTrial(1),1) == 4 && locations(locationsTrial(1),2) == 4
+                                %TODO: why are we still doing this?
                             else
                                 whichTrial = whichTrial + 1;
                             end
@@ -1089,18 +1092,8 @@ try
                 Screen('FillOval', window, fixcol, fixRect);
                 if respond_center == 0
                     ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-                end
-                
-                if respond_center == 1
-                    for Xpos = min(locations(:,1)):max(locations(:,1))
-                        for Ypos = min(locations(:,2)):max(locations(:,2))
-                            if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                                [X,Y] = RectCenter(XYRect);
-                                Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                            end
-                        end
-                    end
+                else
+                    ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 % Screen('Flip', window);
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
@@ -1138,6 +1131,7 @@ try
                     breakFixation = GetSecs - timeSessionStarts;
                     blkincompleteTrial = blkincompleteTrial + 1;
                     totalincompleteTrial = totalincompleteTrial + 1;
+                    %FIXME:  this was only needed when the monkey refused to look down-right
                     if locations(locationsTrial(1),1) == 4 && locations(locationsTrial(1),2) == 4
                     else
                         whichTrial = whichTrial + 1;
@@ -1145,6 +1139,19 @@ try
                 end
                 inTask = 0;
                 break;
+            end
+            
+            if StimRef == 3 && stimprob ~= 0
+                if GetSecs > timeIniPreresponse + Stimulation_onset && stimulation == 0
+                    if rand < stimprob
+                        if mouse == 0
+                            Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
+                            Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
+                        end
+                        err = PS_StartStimAllChannels(1);
+                    end
+                    stimulation = 1;
+                end
             end
         end
         
@@ -1258,6 +1265,7 @@ try
                 if GetSecs - timeReachTarget > timeOnTarget
                     responded = 1;
                     reward = 1;
+                    continue;
                     
                     %%%%%%% reward %%%%%%%
                 end
@@ -1268,22 +1276,11 @@ try
                     Screen('FillRect', window,[((255-100)*responsecontrastlevel/100) + 100 ((0-100)*responsecontrastlevel/100) + 100  ((0-100)*responsecontrastlevel/100) + 100], cueSizeRect);
                 end
                 
-                ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
+                if respond_center == 0
+                    ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
 
-                if respond_center == 1
-                    for Xpos = min(locations(:,1)):max(locations(:,1))
-                        for Ypos = min(locations(:,2)):max(locations(:,2))
-                            if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-%                                 fixRect_XY = [0 0 25 25]; % rect for fixation spot
-%                                 fixRect_XY = CenterRect(fixRect_XY, XYRect); % Center the spot
-%                                 Screen('FillOval', window, fixcol, fixRect_XY);
-                                
-                                [X,Y] = RectCenter(XYRect);
-                                Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                            end
-                        end
-                    end
+                else
+                    ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 
                 if eyemvt == 1
@@ -1340,22 +1337,11 @@ try
                     % Screen('FillRect', window, [(255-100)/(101-tarcontrastlevel)+100 (0-100)/(101-tarcontrastlevel)+100 (0-100)/(101-tarcontrastlevel)+100], cueSizeRect);
                     Screen('FillRect', window,[((255-100)*responsecontrastlevel/100) + 100 ((0-100)*responsecontrastlevel/100) + 100  ((0-100)*responsecontrastlevel/100) + 100], cueSizeRect);
                 end
-                ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
                 
-                if respond_center == 1
-                    for Xpos = min(locations(:,1)):max(locations(:,1))
-                        for Ypos = min(locations(:,2)):max(locations(:,2))
-                            if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-%                                 fixRect_XY = [0 0 25 25]; % rect for fixation spot
-%                                 fixRect_XY = CenterRect(fixRect_XY, XYRect); % Center the spot
-%                                 Screen('FillOval', window, fixcol, fixRect_XY);
-                                
-                                [X,Y] = RectCenter(XYRect);
-                                Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                            end
-                        end
-                    end
+                if respond_center == 0
+                    ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)   
+                else
+                    ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 
                 if eyemvt == 1
@@ -1402,8 +1388,20 @@ try
                 drawnow
             end
             
+            if StimRef == 4 && stimprob ~= 0
+                if GetSecs > timeIniResponse + Stimulation_onset && stimulation == 0
+                    if rand < stimprob
+                        if mouse == 0
+                            Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
+                            Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
+                        end
+                        err = PS_StartStimAllChannels(1);
+                    end
+                    stimulation = 1;
+                end
+            end
         end
-        
+
 %         %% PRESENT FEEDBACK FOR REWARDS
 %         if inTask == 1
 %             results.reward(trialsStarted,1) = reward;
@@ -1422,31 +1420,20 @@ try
                 sessionstarted = 0;
                 
                 % Snd('Play',rewardbeep);
-                % SendEvent2([0 0 0 0 0 1 1 0]);
+                % % SendEvent2([0 0 0 0 0 1 1 0]);
                 
                 while GetSecs - timeIniFeedback < feedbackTime
                     iteration = iteration + 1;
                     % Screen('FillOval', window, [0 0 255], fixRect);
                     if respond_center == 0
                         ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-                    end
-                    
-                    if respond_center == 1
-                        for Xpos = min(locations(:,1)):max(locations(:,1))
-                            for Ypos = min(locations(:,2)):max(locations(:,2))
-                                if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                    XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                                    [X,Y] = RectCenter(XYRect);
-                                    Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                                end
-                            end
-                        end
+                    else
+                       ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                     end
                     [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                     
                     if iteration == 1
                         vblreward = VBLTimestamp;
-                        Snd('Play',rewardbeep);
                         SendEvent2([0 0 0 0 0 1 1 0],dio);
                         ereward = GetSecs;
                         if mouse == 0
@@ -1456,6 +1443,7 @@ try
                             usb_pulse(handle,rewardduration)
                             % DST_reward(rewardduration,AO)
                         end
+                        Snd('Play',rewardbeep);
                     end
                     
                     if mouse == 0
@@ -1510,7 +1498,7 @@ try
                     
                 end
                 % Snd('Play',failurebeep);
-                % SendEvent2([0 0 0 0 0 1 1 1]);
+                % % SendEvent2([0 0 0 0 0 1 1 1]);
                 
                 timeIniFeedback = GetSecs;
                 while GetSecs - timeIniFeedback < feedbackTime
@@ -1519,18 +1507,8 @@ try
                     
                     if respond_center == 0
                         ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-                    end
-                    
-                    if respond_center == 1
-                        for Xpos = min(locations(:,1)):max(locations(:,1))
-                            for Ypos = min(locations(:,2)):max(locations(:,2))
-                                if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                    XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                                    [X,Y] = RectCenter(XYRect);
-                                    Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                                end
-                            end
-                        end
+                    else
+                        ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                     end
                     [X,Y] = RectCenter(windowRect);
                     % oldFontSize = Screen(window,'TextSize',800);
@@ -1540,12 +1518,12 @@ try
                     
                     if iteration == 1
                         vblfail = VBLTimestamp;
-                        Snd('Play',failurebeep);
                         SendEvent2([0 0 0 0 0 1 1 1],dio);
                         efail = GetSecs;
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 0 1 1 1]));
                         end
+                        Snd('Play',failurebeep);
                     end
                     if mouse == 0
                         
@@ -1593,28 +1571,18 @@ try
                 % Screen('FillOval', window, [0 0 255], fixRect);
                 if respond_center == 0
                     ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-                end
-                
-                if respond_center == 1
-                    for Xpos = min(locations(:,1)):max(locations(:,1))
-                        for Ypos = min(locations(:,2)):max(locations(:,2))
-                            if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                                XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                                [X,Y] = RectCenter(XYRect);
-                                Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                            end
-                        end
-                    end
+                else
+                    ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 
                 if iteration == 1
-                    Snd('Play',rewardbeep);
                     SendEvent2([0 0 0 0 1 0 0 0],dio);
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 1 0 0 0]));
                     end
                     usb_pulse(handle,manualrewardduration)
+                    Snd('Play',rewardbeep);
                     % DST_reward(manualrewardduration,AO)
                 end
                 
@@ -1673,18 +1641,8 @@ try
             
             if respond_center == 0
                 ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-            end
-            
-            if respond_center == 1
-                for Xpos = min(locations(:,1)):max(locations(:,1))
-                    for Ypos = min(locations(:,2)):max(locations(:,2))
-                        if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                            XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                            [X,Y] = RectCenter(XYRect);
-                            Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                        end
-                    end
-                end
+            else
+               ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
             end
             Screen('Flip', window);
             
@@ -1740,18 +1698,8 @@ try
             
             if respond_center == 0
                 ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
-            end
-            
-            if respond_center == 1
-                for Xpos = min(locations(:,1)):max(locations(:,1))
-                    for Ypos = min(locations(:,2)):max(locations(:,2))
-                        if Xpos ~= ceil(numDivisionsGrid(2)/2) || Ypos ~= ceil(numDivisionsGrid(1)/2)
-                            XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
-                            [X,Y] = RectCenter(XYRect);
-                            Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
-                        end
-                    end
-                end
+            else
+               ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
             end
             Screen('Flip', window);
             
@@ -1828,10 +1776,20 @@ try
     Screen('CloseAll');
     %close the digital/analog objects
 	clear dio
+    %close stimulation object
+    if stimprob ~= 0
+        err = PS_StopStimAllChannels(1);
+        err = PS_CloseStim(1);
+    end
     %IOPort('CloseAll');
 catch %#ok<CTCH>
     Screen('CloseAll');
     clear dio
+    %close stimulation object
+    if stimprob ~= 0
+        err = PS_StopStimAllChannels(1);
+        err = PS_CloseStim(1);
+    end
     %IOPort('CloseAll');
     psychrethrow(psychlasterror);
 end
@@ -1865,6 +1823,20 @@ for linesY = 1:numDivisionsGrid(1)+1
         end
     end
 end
+
+function ScreenGridCenters(window,numDivisionsGrid,locations,squareArea,X_rect, Y_rect,normBoundsRect,fixcol)
+    centerX = ceil(numDivisionsGrid(2)/2);
+    centerY =  ceil(numDivisionsGrid(1)/2);
+    for i = 1:size(locations,1)
+        Xpos = locations(i,1);
+        Ypos = locations(i,2);
+        if ~((mod(numDivisionsGrid(2),2) == 0 && (Xpos == centerX || Xpos == centerX +1))&&( mod(numDivisionsGrid(1),2) == 0 && (Ypos == centerY || Ypos == centerY +1))) && ~((mod(numDivisionsGrid(2),2) == 1 && Xpos == centerX) && ( mod(numDivisionsGrid(1),2) == 1 && Ypos == centerY))
+            XYRect = [X_rect(Xpos),Y_rect(Ypos),X_rect(Xpos)+squareArea,Y_rect(Ypos)+squareArea];
+            [X,Y] = RectCenter(XYRect);
+            Screen('DrawText', window, '+', X-round(normBoundsRect(3)/2), Y-round(normBoundsRect(4)/2), fixcol);
+        end
+    end
+
                 
                 
 function plotGridLines(numDivisionsGrid,squareArea,fromX,toX,fromY,toY)
