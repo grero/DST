@@ -348,6 +348,7 @@ try
     SendEvent2([1 1 ncols],dio); %maximum column
     SendEvent2([1 1 nrows],dio); %maximum row
     if mouse == 0
+        Eyelink('Message',sunm2str([1 1 0 0 0 0 0 0]));
         Eyelink('Message', num2str([1 1 ncols nrows]));
     end
     
