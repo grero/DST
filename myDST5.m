@@ -622,6 +622,7 @@ try
             if StimRef == 1 && stimprob ~= 0
                 if GetSecs > timefixationend + Stimulation_onset && stimulation == 0
                     if rand < stimprob
+                        SendEvent2([0 0 0 0 1 1 1 1],dio);
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -792,6 +793,7 @@ try
                 if StimRef == 2 && stimprob ~= 0
                     if (GetSecs > (timeStartCue + Stimulation_onset)) && stimulation == 0
                         if rand < stimprob
+                            SendEvent2([0 0 0 0 1 1 1 1],dio);
                             if mouse == 0
                                 Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                                 Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -1150,6 +1152,7 @@ try
             if StimRef == 3 && stimprob ~= 0
                 if GetSecs > timeIniPreresponse + Stimulation_onset && stimulation == 0
                     if rand < stimprob
+                        SendEvent2([0 0 0 0 1 1 1 1],dio);
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -1182,7 +1185,7 @@ try
             iteration = iteration + 1;
             if GetSecs - timeIniResponse > (rangeRT(2)/1000 + (rangeRT(2)/1000*(RTratio-1)*stimulation))
                 responded = 1;
-                continue;
+                % continue;
             end
             
             % Check for escape command
@@ -1273,7 +1276,7 @@ try
                     responded = 1;
                     reward = 1;
                     continue;
-                    
+
                     %%%%%%% reward %%%%%%%
                 end
                 % Wait period
@@ -1398,6 +1401,7 @@ try
             if StimRef == 4 && stimprob ~= 0
                 if GetSecs > timeIniResponse + Stimulation_onset && stimulation == 0
                     if rand < stimprob
+                        SendEvent2([0 0 0 0 1 1 1 1],dio);
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -1414,7 +1418,7 @@ try
 %             results.reward(trialsStarted,1) = reward;
 %         end
         
-         if manualreward == 0
+        if manualreward == 0
             if reward == 1
                 
                 timeIniFeedback = GetSecs;
