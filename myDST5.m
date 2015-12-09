@@ -98,6 +98,12 @@ interDur = results.parameters.interdur; %uSec
 stimprob = results.parameters.stimprob;
 Rate = results.parameters.rate; %Hz
 StimRef = results.parameters.stimref; % 1= pre-stim, 2= target 3= delay, 4= response
+prestimratio = results.parameters.prestimratio;
+squareTimeONratio = results.parameters.squareTimeONratio;
+interSquareTimeratio = results.parameters.interSquareTimeratio;
+delayratio = results.parameters.delayratio;
+RTratio = results.parameters.RTratio;
+timeOnTargetratio = results.parameters.timeOnTargetratio;
 
 rewardbeep = MakeBeep(2000,0.2);
 failurebeep = MakeBeep(100,0.2);
@@ -171,7 +177,7 @@ try
     %whichScreen = 2;
     
     if mouse == 1
-        whichScreen = 0;
+        whichScreen = 1;
     end
     % Open a new window.
     [ window, windowRect ] = Screen('OpenWindow', whichScreen,backgroundColor);
@@ -527,7 +533,7 @@ try
 
         prestim = rand*(maxprestim-minprestim) + minprestim;
         timefixationend = GetSecs;
-        while GetSecs < timefixationend + prestim && inTask == 1
+        while GetSecs < (timefixationend + prestim+(prestim*(prestimratio-1)*stimulation)) && inTask == 1
             
             iteration = iteration +1;
             trialHasStarted = 1;
@@ -682,7 +688,7 @@ try
             iteration = 0;
             squareTimeON = rand*(maxsquareTimeON-minsquareTimeON) + minsquareTimeON;
 
-            while GetSecs < timeStartCue + squareTimeON && inTask == 1
+            while GetSecs < (timeStartCue + squareTimeON + (squareTimeON*(squareTimeONratio-1)*stimulation)) && inTask == 1
 
                 iteration = iteration + 1;
                 % trialHasStarted = 1;
@@ -815,7 +821,7 @@ try
                     interSquareTime = rand*(maxinterSquareTime-mininterSquareTime) + mininterSquareTime;
                     
                     timeIniDistractor = GetSecs;
-                    while GetSecs < timeIniDistractor + interSquareTime && inTask == 1
+                    while GetSecs < (timeIniDistractor + interSquareTime + (interSquareTime*(interSquareTimeratio-1)*stimulation)) && inTask == 1
 
                         iteration = iteration + 1;
 
@@ -908,7 +914,7 @@ try
                 iteration = 0;
                 
                 timeIniDistractor = GetSecs;
-                while GetSecs < timeIniDistractor + squareTimeON && inTask == 1
+                while GetSecs < (timeIniDistractor + squareTimeON + (squareTimeON*(squareTimeONratio-1)*stimulation)) && inTask == 1
                     
                     iteration = iteration + 1;
                     
@@ -1052,7 +1058,7 @@ try
             delay = rand*(maxdelay-mindelay) + mindelay;
         end
         timeIniPreresponse = GetSecs;
-        while GetSecs < timeIniPreresponse + delay && inTask == 1
+        while GetSecs < (timeIniPreresponse + delay + (delay*(delayratio-1)*stimulation)) && inTask == 1
 
             iteration = iteration + 1;
             
@@ -1174,8 +1180,9 @@ try
             
             % oldFontSize = Screen(window,'TextSize',300);                    
             iteration = iteration + 1;
-            if GetSecs - timeIniResponse > rangeRT(2)/1000
+            if GetSecs - timeIniResponse > (rangeRT(2)/1000 + (rangeRT(2)/1000*(RTratio-1)*stimulation))
                 responded = 1;
+                continue;
             end
             
             % Check for escape command
@@ -1262,7 +1269,7 @@ try
                     timeReachTarget = GetSecs;
                 end
                 
-                if GetSecs - timeReachTarget > timeOnTarget
+                if GetSecs - timeReachTarget > (timeOnTarget + (timeOnTarget*(timeOnTargetratio-1)*stimulation))
                     responded = 1;
                     reward = 1;
                     continue;
@@ -1319,7 +1326,7 @@ try
                 axis([windowRect(1),windowRect(3),windowRect(2),windowRect(4)])
                 plotGridLines(numDivisionsGrid,squareArea,fromX,toX,fromY,toY)
 
-              title(['Block ', num2str(ceil(whichTrial/numLocations)),'  Trial ', num2str(blTrial),'  Block: ',num2str(blkcorrectTrial),'/',...
+                title(['Block ', num2str(ceil(whichTrial/numLocations)),'  Trial ', num2str(blTrial),'  Block: ',num2str(blkcorrectTrial),'/',...
                 num2str(blkincorrectTrial),'/',num2str(blkincompleteTrial),'  Total: ',num2str(totalcorrectTrial),'/',...
                 num2str(totalincorrectTrial),'/',num2str(totalincompleteTrial), '  (' num2str(100*totalcorrectTrial/(totalincorrectTrial+totalcorrectTrial)) '%)',...
                 '    Manual Reward = ',num2str(totalmanualreward_count)])
