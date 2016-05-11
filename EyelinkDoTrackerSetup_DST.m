@@ -1,4 +1,4 @@
-function result=EyelinkDoTrackerSetup_DST(el,rewardduration,endkey)
+function result=EyelinkDoTrackerSetup_DST(el,rewardduration,fixcol,sendkey)
 
 % USAGE: result=EyelinkDoTrackerSetup(el [, sendkey])
 %
@@ -74,7 +74,7 @@ while stop==0 && bitand(Eyelink( 'CurrentMode'), el.IN_SETUP_MODE)
 
 	if bitand(i, el.IN_TARGET_MODE)			% calibrate, validate, etc: show targets
 		%fprintf ('%s\n', 'dotrackersetup: in targetmodedisplay' );
-		EyelinkTargetModeDisplay_DST(el,rewardduration);		
+		EyelinkTargetModeDisplay_DST(el,rewardduration,fixcol);		
 	elseif bitand(i, el.IN_IMAGE_MODE)		% display image until we're back
 % 		fprintf ('%s\n', 'EyelinkDoTrackerSetup: in ''ImageModeDisplay''' );
 	  	if Eyelink ('ImageModeDisplay')==el.TERMINATE_KEY 
