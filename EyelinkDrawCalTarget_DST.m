@@ -1,4 +1,4 @@
-function rect=EyelinkDrawCalTarget_DST(el, x, y)
+function rect=EyelinkDrawCalTarget_DST(el, x, y,fixcol)
 
 % draw simple calibration target
 %
@@ -11,7 +11,7 @@ function rect=EyelinkDrawCalTarget_DST(el, x, y)
 % simple, standard eyelink version
 %   22-06-06    fwc OSX-ed
 
-fixcol = [255 255 255];
+% fixcol = [255 255 255];
 [width, height]=Screen('WindowSize', el.window);
 size=round(el.calibrationtargetsize/100*width);
 
