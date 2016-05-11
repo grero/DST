@@ -2,6 +2,7 @@ function myDST5(homeDir,results)
 global handle whichScreen
 KbName('UnifyKeyNames');
 %TODO: Allow smaller targets at the centre of the big targets
+%TODO: Make we use the same axis handle for all plots
 % + +   + +
 %  *     *
 % + +
@@ -101,6 +102,7 @@ StimRef = results.parameters.stimref; % 1= pre-stim, 2= target 3= delay, 4= resp
 prestimratio = results.parameters.prestimratio;
 squareTimeONratio = results.parameters.squareTimeONratio;
 interSquareTimeratio = results.parameters.interSquareTimeratio;
+%should stimulaition change the length of the delay period
 delayratio = results.parameters.delayratio;
 RTratio = results.parameters.RTratio;
 timeOnTargetratio = results.parameters.timeOnTargetratio;
@@ -429,12 +431,15 @@ try
         for x = 1:length(targetindex)
             stim_sequence_locationindex(targetindex(x)) = cuelocationsIndexShuffled(randi(length(cuelocationsIndexShuffled),1,1));
         end
+				%what targets and distractors will be presented in this trial
         locationsTrial = [cuelocationsIndexShuffled(blTrial),stim_sequence_locationindex];
         
+				%get the actual position of the target on the screen
         xOffset = squareArea*(locations(locationsTrial(1),1)-1)+fromX;
         yOffset = squareArea*(locations(locationsTrial(1),2)-1)+fromY;
         cueRect = OffsetRect(cueRectOriginal, xOffset, yOffset);
         cueSizeRect = [cueRect(1)+diffsize cueRect(2)+diffsize cueRect(3)-diffsize cueRect(4)-diffsize];
+				%for the experimenter screen
         cue_X = [cueSizeRect(1) cueSizeRect(1) cueSizeRect(3) cueSizeRect(3)];
         cue_Y = windowRect(4) - [cueSizeRect(2) cueSizeRect(4) cueSizeRect(4) cueSizeRect(2)];
         
@@ -451,6 +456,8 @@ try
                 [posX,posY,buttons] = GetMouse(window);
             end
             
+						%TODO: what if the monkey blinks?
+						%is the eye poisition within the central fixation window
             if posX > fixAreaRect(1) && posX < fixAreaRect(3) && posY > fixAreaRect(2) && posY < fixAreaRect(4)
                 if inFixation == 0
                     fixationIni = GetSecs;
@@ -465,6 +472,7 @@ try
                 end
             end
 
+						%TODO: also check if we are in fixation
             if GetSecs - fixationIni > timeFixation
                 startTask = 1;
                 break;
@@ -484,7 +492,8 @@ try
                     break;
                 end
             end
-            
+           	
+					 %should the target appear with the fixation spot?	
             if prestimcontrastlevel ~= 0
                 Screen('FillRect', window,[((255-100)*prestimcontrastlevel/100) + 100 ((0-100)*prestimcontrastlevel/100) + 100  ((0-100)*prestimcontrastlevel/100) + 100], cueSizeRect);
             end
@@ -539,6 +548,7 @@ try
             iteration = iteration +1;
             trialHasStarted = 1;
             
+						%TODO: make this into a function since we keep doing the same thing
             % Check for escape command
             [ keyIsDown, seconds, keyCode ] = KbCheck;
             if keyIsDown
@@ -609,6 +619,7 @@ try
                 '    Manual Reward = ',num2str(totalmanualreward_count)])
                 drawnow
             else
+							%TODO: use buffer time here to allow the monkey to drift outside the fixation for a short period
                 if breakFixation == 0
                     breakFixation = GetSecs - timeSessionStarts;
                     blkincompleteTrial = blkincompleteTrial + 1;
