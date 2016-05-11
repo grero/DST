@@ -1,5 +1,5 @@
-function result=EyelinkTargetModeDisplay_DST(el,rewardduration)
-
+function result=EyelinkTargetModeDisplay_DST(el,rewardduration,fixcol)
+global handle
 % USAGE: result=EyelinkTargetModeDisplay(el)
 %
 %		el: Eyelink default values
@@ -33,12 +33,13 @@ end
 stop=0;
 count = 0;
 
-%reward object
-AO = analogoutput('nidaq','Dev2');
+% create a handle for reward system
+%[handle,errmsg] = IOPort('OpenSerialPort','com4','RTS=1');
+% AO = analogoutput('nidaq','Dev2');
 % Add channels  Add one channel to AO.
-addchannel(AO,0);
+% addchannel(AO,0);
 % Set the SampleRate
-set(AO,'SampleRate',8000);
+% set(AO,'SampleRate',8000);
     
 while stop==0 && bitand(Eyelink('CurrentMode'), el.IN_TARGET_MODE)
 
@@ -85,14 +86,14 @@ while stop==0 && bitand(Eyelink('CurrentMode'), el.IN_TARGET_MODE)
         if count == 0
             count = count + 1;
         elseif count >= 1
-            DST_reward(rewardduration,AO)
+            usb_pulse(handle,rewardduration)
         end
 	end
 	% redraw if invisible
 	if targetvisible==0 && result==1
 % 		fprintf( 'Target drawn at: x=%d, y=%d\n', tx, ty );
 		
-		targetrect=EyelinkDrawCalTarget_DST(el, tx, ty);
+		targetrect=EyelinkDrawCalTarget_DST(el, tx, ty,fixcol);
 		targetvisible = 1;
 		otx = tx;		% record position for future tests
 		oty = ty;
@@ -103,7 +104,7 @@ while stop==0 && bitand(Eyelink('CurrentMode'), el.IN_TARGET_MODE)
 	
 end % while IN_TARGET_MODE
 
-
+%IOPort('CloseAll');
 % exit:					% CLEAN UP ON EXIT
 if el.targetbeep==1
 	if Eyelink('CalResult')==1  % does 1 signal success?
