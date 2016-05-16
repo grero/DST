@@ -477,22 +477,11 @@ try
                 startTask = 1;
                 break;
             end
-            
-            [ keyIsDown, seconds, keyCode ] = KbCheck; %#ok<*ASGLU>
-            if keyIsDown
-                if keyCode(escapeKey)
-                    save(filename,'results');
-                    continueTask = 0;
-                    inTask = 0;
-                    break;
-                elseif keyCode(spaceKey)
-                    spacecount = spacecount + 1;
-                elseif keyCode(rKey)
-                    manualreward = 1;
-                    break;
-                end
-            end
            	
+					 dobreak = checkforkeys	;
+					 if dobreak
+						 break
+					 end
 					 %should the target appear with the fixation spot?	
             if prestimcontrastlevel ~= 0
                 Screen('FillRect', window,[((255-100)*prestimcontrastlevel/100) + 100 ((0-100)*prestimcontrastlevel/100) + 100  ((0-100)*prestimcontrastlevel/100) + 100], cueSizeRect);
@@ -550,20 +539,10 @@ try
             
 						%TODO: make this into a function since we keep doing the same thing
             % Check for escape command
-            [ keyIsDown, seconds, keyCode ] = KbCheck;
-            if keyIsDown
-                if keyCode(escapeKey)
-                    save(filename,'results');
-                    continueTask = 0;
-                    inTask = 0;
-                    break;
-                elseif keyCode(spaceKey)
-                    spacecount = spacecount + 1;
-                elseif keyCode(rKey)
-                    manualreward = 1;
-                    break;
-                end
-            end
+						dobreak = checkforkeys
+						if dobreak
+							break;
+						end
 
             % Check for fixation. If not, abort trial
             if mouse == 0
@@ -707,20 +686,10 @@ try
                 % trialHasStarted = 1;
 
                 % Check for escape command
-                [ keyIsDown, seconds, keyCode ] = KbCheck;
-                if keyIsDown
-                    if keyCode(escapeKey)
-                        save(filename,'results');
-                        continueTask = 0;
-                        inTask = 0;
-                        break;
-                    elseif keyCode(spaceKey)
-                        spacecount = spacecount + 1;
-                    elseif keyCode(rKey)
-                        manualreward = 1;
-                        break;
-                    end
-                end
+								dobreak = checkforkeys;
+								if dobreak
+									break;
+								end
 
                 % Check for fixation. If not, abort trial
                 if mouse == 0
@@ -840,21 +809,10 @@ try
                         iteration = iteration + 1;
 
                         % Check for escape command
-                        [ keyIsDown, seconds, keyCode ] = KbCheck;
-                        if keyIsDown
-                            if keyCode(escapeKey)
-                                save(filename,'results');
-                                continueTask = 0;
-                                inTask = 0;
-                                break;
-                            elseif keyCode(spaceKey)
-                                spacecount = spacecount + 1;
-                            elseif keyCode(rKey)
-                                manualreward = 1;
-                                break;
-                            end
-                        end
-                        
+												dobreak = checkforkeys;
+												if dobreak
+													break
+												end
                         % Check for fixation. If not, abort trial
                         if mouse == 0
                             
@@ -933,21 +891,10 @@ try
                     iteration = iteration + 1;
                     
                     % Check for escape command
-                    [ keyIsDown, seconds, keyCode ] = KbCheck;
-                    if keyIsDown
-                        if keyCode(escapeKey)
-                            save(filename,'results');
-                            continueTask = 0;
-                            inTask = 0;
-                            break;
-                        elseif keyCode(spaceKey)
-                            spacecount = spacecount + 1;
-                        elseif keyCode(rKey)
-                            manualreward = 1;
-                            break;
-                        end
-                    end
-
+										dobreak = checkforkeys;
+										if dobreak
+											break
+										end
                     % Check for fixation. If not, abort trial
                     if mouse == 0
                         
@@ -1077,21 +1024,10 @@ try
             iteration = iteration + 1;
             
             % Check for escape command
-            [ keyIsDown, seconds, keyCode ] = KbCheck;
-            if keyIsDown
-                if keyCode(escapeKey)
-                    save(filename,'results');
-                    continueTask = 0;
-                    inTask = 0;
-                    break;
-                elseif keyCode(spaceKey)
-                    spacecount = spacecount + 1;
-                elseif keyCode(rKey)
-                    manualreward = 1;
-                    break;
-                end
-            end
-            
+						dobreak = checkforkeys;
+						if dobreak
+							break
+						end
             % Check for fixation. If not, abort trial
             if mouse == 0
                 
@@ -1201,21 +1137,10 @@ try
             end
             
             % Check for escape command
-            [ keyIsDown, seconds, keyCode ] = KbCheck;
-            if keyIsDown
-                if keyCode(escapeKey)
-                    save(filename,'results');
-                    continueTask = 0;
-                    inTask = 0;
-                    break;
-                elseif keyCode(spaceKey)
-                    spacecount = spacecount + 1;
-                elseif keyCode(rKey)
-                    manualreward = 1;
-                    break;
-                end
-            end
-            
+						dobreak = checkforkeys;
+						if dobreak
+							break
+						end
             % Check for correct response.
             if mouse == 0
                 
@@ -1646,22 +1571,10 @@ try
         %% PENALTY IF ANIMAL MOVE OUTSIDE THE FIXATION WINDOW
         timeIniPen = GetSecs;
         while GetSecs - timeIniPen < penalty && inTask == 0
-
-            [ keyIsDown, seconds, keyCode ] = KbCheck;
-            if keyIsDown
-                if keyCode(escapeKey)
-                    save(filename,'results');
-                    continueTask = 0;
-                    inTask = 0;
-                    break;
-                elseif keyCode(spaceKey)
-                    spacecount = spacecount + 1;
-                elseif keyCode(rKey)
-                    manualreward = 1;
-                    break;
-                end
-            end
-            
+						dobreak = checkforkeys;
+						if dobreak
+							break
+						end
             if respond_center == 0
                 ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
             else
@@ -1704,20 +1617,10 @@ try
         timeIniPTI = GetSecs;
         while GetSecs - timeIniPTI < ITI
 
-            [ keyIsDown, seconds, keyCode ] = KbCheck;
-            if keyIsDown
-                if keyCode(escapeKey)
-                    save(filename,'results');
-                    continueTask = 0;
-                    inTask = 0;
-                    break;
-                elseif keyCode(spaceKey)
-                    spacecount = spacecount + 1;
-                elseif keyCode(rKey)
-                    manualreward = 1;
-                    break;
-                end
-            end
+						dobreak = checkforkeys;
+						if dobreak
+							break;
+						end
             
             if respond_center == 0
                 ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
@@ -1888,3 +1791,20 @@ for linesY = 1:numDivisionsGrid(1)+1
         end
     end
 end
+
+function dobreak = checkforkeys
+	dobreak = 0;
+	[ keyIsDown, seconds, keyCode ] = KbCheck;
+	if keyIsDown
+			if keyCode(escapeKey)
+					save(filename,'results');
+					continueTask = 0;
+					inTask = 0;
+					dobreak = 1;
+			elseif keyCode(spaceKey)
+					spacecount = spacecount + 1;
+			elseif keyCode(rKey)
+					manualreward = 1;
+					dobreak = 1;
+			end
+	end
