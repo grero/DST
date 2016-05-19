@@ -111,6 +111,14 @@ rewardbeep = MakeBeep(2000,0.2);
 failurebeep = MakeBeep(100,0.2);
 Snd('Open')
 
+%attempt to get the current commit
+code_version = '';
+if exist('getGitInfo')
+    [pathstr,~,~] = fileparts((mfilename('fullpath')));
+    gg = getGitInfo(pathstr);
+    code_version = gg.hash;
+end
+
 if blocknum == 0
     blocknum = 1000;
 end
@@ -1695,7 +1703,7 @@ try
         results.erespond(whichTrial) = erespond;
         results.ereward(whichTrial) = ereward;
         results.efail(whichTrial) = efail;
-        
+        results.code_version = code_version;
         save(filename,'results')
     end
     
