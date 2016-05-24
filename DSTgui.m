@@ -1116,6 +1116,8 @@ switch str{val};
         handles.metricdata.monkeyname = 'P';
     case 'James' % User selects Peaks.
         handles.metricdata.monkeyname = 'J';
+    case 'Picasso' % User selects Peaks.
+        handles.metricdata.monkeyname = 'Q';
 
 end
 guidata(hObject,handles)
@@ -1132,7 +1134,7 @@ function monkeyname_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-set(hObject, 'String', {'Pancake','James'});
+set(hObject, 'String', {'Pancake','James','Picasso'});
 
 % function loadfile_Callback(hObject, eventdata, handles)
 % % hObject    handle to trainstep (see GCBO)
