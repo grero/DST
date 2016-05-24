@@ -10,6 +10,7 @@ KbName('UnifyKeyNames');
 % Trigger
 % (11000000) Start of Session 
 % (00000000) Start of Fixation period 
+% (00000010) Post-fixation period
 % (00000001) Start of Pre-Stimulus Period              
 % (10000000) Start of Target Stimulus (34 locations)    
 % (01000000) Start of Distractor Stimulus (34 locations) 
