@@ -198,7 +198,6 @@ try
     
     squareArea = floor((windowRect(4)-windowRect(4)/10)/numDivisionsGrid(2));
     buffersize = round(squareArea*(respondsizeratio - 1));
-    % diffsize = round((squareArea - squareSize)/2);
     diffsize = round((squareArea - squareArea)/2);
     
     while squareArea*numDivisionsGrid(1) > windowRect(3)
@@ -340,20 +339,8 @@ try
     % Create a Digital I/O Object with the digitalio function
     dio.io.ioObj = io32();
     dio.io.status = io32(dio.io.ioObj);
-    % dio=digitalio('parallel','lpt1');
-    % Add lines to a Digital I/O Object
-    % addline(dio,0,2,'out');
-    % addline(dio,0:7,0,'out'); % add the hardware lines 0 until 7 from port 0 to the digital object dio
-    %clear the lines
-    % putvalue(dio,zeros(1,9));
-    %reward object
-    % AO = analogoutput('nidaq','Dev2');
-    % Add channels  Add one channel to AO.
-    % addchannel(AO,0);
-    % Set the SampleRate
-    % set(AO,'SampleRate',8000);
     
-    SendEvent2([1 1 0 0 0 0 0 0],dio);
+    SendEvent2([1 1 0 0 0 0 0 0],dio); %session start
     ncols = bitget(numDivisionsGrid(1),1:6);
     nrows = bitget(numDivisionsGrid(2),1:6);
     SendEvent2([1 1 ncols],dio); %maximum column
@@ -435,7 +422,6 @@ try
         elseif present_alllocations == 1
             locationIndexShuffled = Shuffle(distractor_locationsIndex);
         end
-        % locationsTrial = [cuelocationsIndexShuffled(blTrial),locationIndexShuffled(1:numDistractors)];
         stim_sequence_locationindex = locationIndexShuffled(1:length(stim_sequence));
         for x = 1:length(targetindex)
             stim_sequence_locationindex(targetindex(x)) = cuelocationsIndexShuffled(randi(length(cuelocationsIndexShuffled),1,1));
@@ -546,8 +532,6 @@ try
             iteration = iteration +1;
             trialHasStarted = 1;
             
-						%TODO: make this into a function since we keep doing the same thing
-            % Check for escape command
 						dobreak = checkforkeys
 						if dobreak
 							break;
@@ -636,33 +620,8 @@ try
         
         %% PRESENT CUE AND DISTRACTORS
         
-        % Select number of distractors and locations
-%         numDistractors = rangeDistractors(1):rangeDistractors(2);
-%         numDistractors = numDistractors(ceil(rand*length(numDistractors)));
-%         numAddTargets = 0:maxAddTargets;
-%         numAddTargets = numAddTargets(ceil(rand*length(numAddTargets)));
-% 
-%         stim_sequence = [ones(1,numAddTargets),2*ones(1,numDistractors)];
-%         stim_sequence = stim_sequence(randperm(length(stim_sequence)));
-%         targetindex = find(stim_sequence == 1);
-%         
-%         locationIndexShuffled = Shuffle(setdiff(locationsIndex,cuelocationsIndexShuffled(blTrial)));
-%         % locationsTrial = [cuelocationsIndexShuffled(blTrial),locationIndexShuffled(1:numDistractors)];
-%         locationsTrial = [cuelocationsIndexShuffled(blTrial),locationIndexShuffled(1:length(stim_sequence))];
-        
         % FIRST PRESENT CUE
         timeStartCue = GetSecs;
-        
-%         xOffset = squareArea*(locations(locationsTrial(1),1)-1)+fromX;
-%         yOffset = squareArea*(locations(locationsTrial(1),2)-1)+fromY;
-%         cueRect = OffsetRect(cueRectOriginal, xOffset, yOffset);
-%         cueSizeRect = [cueRect(1)+diffsize cueRect(2)+diffsize cueRect(3)-diffsize cueRect(4)-diffsize];
-%         cue_X = [cueSizeRect(1) cueSizeRect(1) cueSizeRect(3) cueSizeRect(3)];
-%         cue_Y = windowRect(4) - [cueSizeRect(2) cueSizeRect(4) cueSizeRect(4) cueSizeRect(2)];
-        
-        %         cueRectwithbuffer = [cueRect(1)-buffersize cueRect(2)-buffersize cueRect(3)+buffersize cueRect(4)+buffersize];
-        %         cue_Xwithbuffer = [cueRectwithbuffer(1) cueRectwithbuffer(1) cueRectwithbuffer(3) cueRectwithbuffer(3)];
-        %         cue_Ywithbuffer = windowRect(4) - [cueRectwithbuffer(2) cueRectwithbuffer(4) cueRectwithbuffer(4) cueRectwithbuffer(2)];
         
         if ~isempty(targetindex)
             xOffset1 = squareArea*(locations(locationsTrial(targetindex(end)+1),1)-1)+fromX;
@@ -714,7 +673,6 @@ try
                 if posX > fixAreaRect(1) && posX < fixAreaRect(3) && posY > fixAreaRect(2) && posY < fixAreaRect(4)
 
                     % Present cue
-                    % Screen('FillRect', window, targetColor, cueSizeRect);
                     if stimcontrastlevel ~= 0
                         Screen('FillRect', window,[((255-100)*stimcontrastlevel/100) + 100 ((0-100)*stimcontrastlevel/100) + 100  ((0-100)*stimcontrastlevel/100) + 100], cueSizeRect);
                     end
@@ -1239,20 +1197,6 @@ try
                     ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 
-                if eyemvt == 1
-                    i = 0;
-                    mvcol = [];
-                    while i<size(eyeRect,1)
-                        i = i+1;
-                        if vel(i)>=sac_threshold
-                            mvcol = [mvcol; saccol];
-                        else
-                            mvcol = [mvcol; fixcol];
-                        end
-                        Screen('FillOval', window, mvcol(i,:), eyeRect(i,:));
-                    end
-                end
-                % Screen('Flip', window);
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 
                 if iteration == 1
@@ -1281,16 +1225,12 @@ try
                 '    Manual Reward = ',num2str(totalmanualreward_count)])
                 drawnow
             else
-%                 if wrongTarget == 0 && startTask == 1 && timeReachTarget == inf
-%                     wrongTarget = GetSecs - timeSessionStarts;
-%                 end
                 if responded == 0
                     wrongTarget = GetSecs - timeSessionStarts;
                 end
                 timeReachTarget = inf;
                 % Wait period
                 if responsecontrastlevel ~= 0
-                    % Screen('FillRect', window, [(255-100)/(101-tarcontrastlevel)+100 (0-100)/(101-tarcontrastlevel)+100 (0-100)/(101-tarcontrastlevel)+100], cueSizeRect);
                     Screen('FillRect', window,[((255-100)*responsecontrastlevel/100) + 100 ((0-100)*responsecontrastlevel/100) + 100  ((0-100)*responsecontrastlevel/100) + 100], cueSizeRect);
                 end
                 
@@ -1300,20 +1240,6 @@ try
                     ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 
-                if eyemvt == 1
-                    i = 0;
-                    mvcol = [];
-                    while i<size(eyeRect,1)
-                        i = i+1;
-                        if vel(i)>=sac_threshold
-                            mvcol = [mvcol; saccol];
-                        else
-                            mvcol = [mvcol; fixcol];
-                        end
-                        Screen('FillOval', window, mvcol(i,:), eyeRect(i,:));
-                    end
-                end
-                % Screen('Flip', window);
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 
                 if iteration == 1
@@ -1376,12 +1302,8 @@ try
                 whichTrial = whichTrial + 1;
                 sessionstarted = 0;
                 
-                % Snd('Play',rewardbeep);
-                % % SendEvent2([0 0 0 0 0 1 1 0]);
-                
                 while GetSecs - timeIniFeedback < feedbackTime
                     iteration = iteration + 1;
-                    % Screen('FillOval', window, [0 0 255], fixRect);
                     if respond_center == 0
                         ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
                     else
@@ -1454,8 +1376,6 @@ try
                     end
                     
                 end
-                % Snd('Play',failurebeep);
-                % % SendEvent2([0 0 0 0 0 1 1 1]);
                 
                 timeIniFeedback = GetSecs;
                 while GetSecs - timeIniFeedback < feedbackTime
@@ -1468,9 +1388,6 @@ try
                         ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                     end
                     [X,Y] = RectCenter(windowRect);
-                    % oldFontSize = Screen(window,'TextSize',800);
-                    % Screen('DrawText', window, 'x', X-320, Y-650, [255 0 0]);
-                    % Screen('FillOval', window, [255 0 0], fixRect);
                     [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                     
                     if iteration == 1
@@ -1525,7 +1442,6 @@ try
             
             while GetSecs - timeIniFeedback < feedbackTime
                 iteration = iteration + 1;
-                % Screen('FillOval', window, [0 0 255], fixRect);
                 if respond_center == 0
                     ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
                 else
@@ -1615,11 +1531,6 @@ try
                 '    Manual Reward = ',num2str(totalmanualreward_count)])
             drawnow
         end
-        
-%         if trialHasStarted == 1
-%             results.breakFixation(trialsStarted) = breakFixation;
-%             results.wrongTarget(trialsStarted) = wrongTarget;
-%         end
         
         %% POST TRIAL INTERVAL
         ITI = rand*(maxITI-minITI) + minITI;
@@ -1716,7 +1627,6 @@ try
         err = PS_StopStimAllChannels(1);
         err = PS_CloseStim(1);
     end
-    %IOPort('CloseAll');
 catch %#ok<CTCH>
     Screen('CloseAll');
     clear dio
@@ -1725,7 +1635,6 @@ catch %#ok<CTCH>
         err = PS_StopStimAllChannels(1);
         err = PS_CloseStim(1);
     end
-    %IOPort('CloseAll');
     psychrethrow(psychlasterror);
 end
 
