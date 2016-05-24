@@ -93,6 +93,7 @@ while stop==0 && bitand(Eyelink('CurrentMode'), el.IN_TARGET_MODE)
 	if targetvisible==0 && result==1
 % 		fprintf( 'Target drawn at: x=%d, y=%d\n', tx, ty );
 		
+		%TODO: This is where we can play around with how targets are displayed
 		targetrect=EyelinkDrawCalTarget_DST(el, tx, ty,fixcol);
 		targetvisible = 1;
 		otx = tx;		% record position for future tests
