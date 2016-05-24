@@ -12,8 +12,8 @@ KbName('UnifyKeyNames');
 % (00000000) Start of Fixation period 
 % (00000010) Post-fixation period
 % (00000001) Start of Pre-Stimulus Period              
-% (10000000) Start of Target Stimulus (34 locations)    
-% (01000000) Start of Distractor Stimulus (34 locations) 
+% (10000000) Start of Target Stimulus
+% (01000000) Start of Distractor Stimulus
 % the first 6 bins encode the information the 34 locations 
 % 00 (000,000) (x,y)
 % eg. (4,5) square is represented by (100,101), 
