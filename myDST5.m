@@ -27,6 +27,7 @@ KbName('UnifyKeyNames');
 % (00100000) End of Trial
 
 % (00001111) Start of Microstimulation
+% (00001000) Manual reward
 
 %%% Save parameters in Results file
 
@@ -492,7 +493,7 @@ try
             [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
             if iteration == 1
                 vblstarttrial = VBLTimestamp;
-                SendEvent2([0 0 0 0 0 0 0 0],dio);
+                SendEvent2([0 0 0 0 0 0 0 0],dio); %trial start
                 estarttrial = GetSecs;
                 if mouse == 0
                     Eyelink('Message', num2str([0 0 0 0 0 0 0 0]));
@@ -563,7 +564,7 @@ try
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 if iteration == 1
                     vblprestim = VBLTimestamp;
-                    SendEvent2([0 0 0 0 0 0 0 1],dio);
+                    SendEvent2([0 0 0 0 0 0 0 1],dio); %pre stimulus
                     eprestim = GetSecs;
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 0 0 0 1]));
@@ -606,7 +607,7 @@ try
             if StimRef == 1 && stimprob ~= 0
                 if GetSecs > timefixationend + Stimulation_onset && stimulation == 0
                     if rand < stimprob
-                        SendEvent2([0 0 0 0 1 1 1 1],dio);
+                        SendEvent2([0 0 0 0 1 1 1 1],dio); %stimulation
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -741,7 +742,7 @@ try
                 if StimRef == 2 && stimprob ~= 0
                     if (GetSecs > (timeStartCue + Stimulation_onset)) && stimulation == 0
                         if rand < stimprob
-                            SendEvent2([0 0 0 0 1 1 1 1],dio);
+                            SendEvent2([0 0 0 0 1 1 1 1],dio); %stimulation
                             if mouse == 0
                                 Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                                 Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -804,7 +805,7 @@ try
                             
                             if iteration == 1
                                 vblblank(1,d) = VBLTimestamp;
-                                SendEvent2([0 0 0 0 0 0 1 1],dio);
+                                SendEvent2([0 0 0 0 0 0 1 1],dio); %stim blank
                                 eblank(1,d) = GetSecs;
                                 if mouse == 0
                                     Eyelink('Message', num2str([0 0 0 0 0 0 1 1]));
@@ -1023,7 +1024,7 @@ try
                 
                 if iteration == 1
                     vbldelay = VBLTimestamp;
-                    SendEvent2([0 0 0 0 0 1 0 0],dio);
+                    SendEvent2([0 0 0 0 0 1 0 0],dio); %delay period
                     edelay = GetSecs;
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 0 1 0 0]));
@@ -1067,7 +1068,7 @@ try
             if StimRef == 3 && stimprob ~= 0
                 if GetSecs > timeIniPreresponse + Stimulation_onset && stimulation == 0
                     if rand < stimprob
-                        SendEvent2([0 0 0 0 1 1 1 1],dio);
+                        SendEvent2([0 0 0 0 1 1 1 1],dio); %stimulation
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -1201,7 +1202,7 @@ try
                 
                 if iteration == 1
                     vblrespond = VBLTimestamp;
-                    SendEvent2([0 0 0 0 0 1 0 1],dio);
+                    SendEvent2([0 0 0 0 0 1 0 1],dio); %response
                     erespond = GetSecs;
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 0 1 0 1]));
@@ -1244,7 +1245,7 @@ try
                 
                 if iteration == 1
                     vblrespond = VBLTimestamp;
-                    SendEvent2([0 0 0 0 0 1 0 1],dio);
+                    SendEvent2([0 0 0 0 0 1 0 1],dio); %response
                     erespond = GetSecs;
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 0 1 0 1]));
@@ -1273,7 +1274,7 @@ try
             if StimRef == 4 && stimprob ~= 0
                 if GetSecs > timeIniResponse + Stimulation_onset && stimulation == 0
                     if rand < stimprob
-                        SendEvent2([0 0 0 0 1 1 1 1],dio);
+                        SendEvent2([0 0 0 0 1 1 1 1],dio); %stim
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -1313,7 +1314,7 @@ try
                     
                     if iteration == 1
                         vblreward = VBLTimestamp;
-                        SendEvent2([0 0 0 0 0 1 1 0],dio);
+                        SendEvent2([0 0 0 0 0 1 1 0],dio); %reward
                         ereward = GetSecs;
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 0 1 1 0]));
@@ -1392,7 +1393,7 @@ try
                     
                     if iteration == 1
                         vblfail = VBLTimestamp;
-                        SendEvent2([0 0 0 0 0 1 1 1],dio);
+                        SendEvent2([0 0 0 0 0 1 1 1],dio); %failure
                         efail = GetSecs;
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 0 1 1 1]));
@@ -1450,7 +1451,7 @@ try
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 
                 if iteration == 1
-                    SendEvent2([0 0 0 0 1 0 0 0],dio);
+                    SendEvent2([0 0 0 0 1 0 0 0],dio); %manual reward
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 1 0 0 0]));
                     end
@@ -1573,7 +1574,7 @@ try
                 '    Manual Reward = ',num2str(totalmanualreward_count)])
             drawnow
         end
-        SendEvent2([0 0 1 0 0 0 0 0],dio);
+				SendEvent2([0 0 1 0 0 0 0 0],dio); %end of trial
         if mouse == 0
             Eyelink('Message', num2str([0 0 1 0 0 0 0 0]));
         end
