@@ -45,9 +45,13 @@ Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, width-1, height
 Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, width-1, height-1);                
 % set calibration type.
 Eyelink('command', 'calibration_type = HV9');
-% set parser (conservative saccade thresholds)
-Eyelink('command', 'saccade_velocity_threshold = 35');
-Eyelink('command', 'saccade_acceleration_threshold = 9500');
+% set parser (psychophysical configuration)THIS IS THE RIGHT CONFIG
+%Eyelink('command', 'saccade_velocity_threshold = 22');
+%Eyelink('command', 'saccade_acceleration_threshold = 4000');
+%Eyelink('command', 'saccade_motion_threshold = 0.0');
+%Eyelink('command', 'saccade_pursuit_fixup = 60');
+%Eyelink('command', 'fixation_update_interval = 0');
+
 % set EDF file and link contents
 Eyelink('command', 'file_event_filter = LEFT,RIGHT,GAZE,AREA,GAZERES,HREF,PUPIL,STATUS,INPUT,HMARKER');
 Eyelink('command', 'file_sample_data = LEFT,RIGHT,GAZE,AREA,GAZERES,HREF,PUPIL,STATUS,INPUT,HMARKER');
