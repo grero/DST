@@ -76,7 +76,7 @@ try
     
     % Find out how many screens and use largest screen number.
     % whichScreen = max(Screen('Screens'));
-    whichScreen = 2;
+    whichScreen = 1;
     % Open a new window.
     [ window, windowRect ] = Screen('OpenWindow', whichScreen,backgroundColor);
     

@@ -1,7 +1,8 @@
 function myDST1(homeDir,results)
 global handle whichScreen
 % Trigger
-% (00000000) Start of Fixation period
+% (00000000) Start of Fixation period, note: trigger changed to (10000000)
+% on 2017/07/11
 % (00000110) Start of Reward Feedback
 % (00000111) Start of Failure Feedback
 % (00001000) Start of manual Reward Feedback
@@ -23,11 +24,12 @@ rewardprob = results.parameters.rewardprob;
 % numreward = results.parameters.numreward;
 rewardduration = results.parameters.rewardduration;
 backgroundColor = results.parameters.backgroundColor;
+anode = results.parameters.anode;
 numdatapoints = 3;
 % eyefile = results.parameters.eyedatafile;
 GridCols = 3;
 GridRows = 3;
-displayImage = 0;
+displayImage = 0; %should we display an image instead of the square?
 fixcol = results.parameters.fixcol;
 mouse = results.parameters.mouse;
 
@@ -104,7 +106,7 @@ try
     
     % Find out how many screens and use largest screen number.
     % whichScreen = max(Screen('Screens'));
-    %whichScreen = 1;
+    whichScreen = 1; %1 is primary screen
     % Open a new window.
     [ window, windowRect ] = Screen('OpenWindow', whichScreen,backgroundColor);
     
@@ -166,7 +168,7 @@ try
     results.parameters.timeSessionStarts = timeSessionStarts;
     
     if displayImage == 1
-        imageindex = ceil(rand(1)*8); 
+        imageindex = ceil(rand(1)*8);
         imagename = [num2str(imageindex),'.jpg'];
         imageMatrix = imread(imagename);
         textureIndex=Screen('MakeTexture', window, imageMatrix);
@@ -179,9 +181,17 @@ try
     %before we enter loop, set up reward and trigger objects
 	%trigger object
 	% Create a Digital I/O Object with the digitalio function
-    dio.io.ioObj = io32();
-    dio.io.status = io32(dio.io.ioObj);
-	%dio=digitalio('parallel','lpt1');
+    dio.io.ioObj = io64();
+    dio.io.status = io64(dio.io.ioObj);
+    %
+    if dio.io.status == 0
+        parallel_ok = 1;
+    else 
+        warning('No parallel port found. Events will only be sent to Eyelink');
+        parallel_ok = 0;
+    end
+    %
+% 	dio=digitalio('parallel','lpt1');
 % 	Add lines to a Digital I/O Object
 % 	addline(dio,0,2,'out');
 % 	addline(dio,0:7,0,'out'); % add the hardware lines 0 until 7 from port 0 to the digital object dio
@@ -253,10 +263,8 @@ try
                 if GetSecs > fixationIni + Stimulation_onset && stimulation == 0
                     if rand < stimprob
                         if mouse == 0
-                            stimulation_time = GetSecs;
-                            SendEvent2([0 0 0 0 1 1 1 1], dio);
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
-                            Eyelink('Message', num2str([fixationIni, stimulation_time, channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
+                            Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
                         end
                         err = PS_StartStimAllChannels(1);
                     end
@@ -286,10 +294,10 @@ try
                     % update = 1;
                     break;
                 elseif keyCode(sKey)
-%                     SendEvent2([0 0 0 0 1 1 1 1],dio);
-%                     if mouse == 0
-%                         Eyelink('Message', num2str([anode channel]));
-%                     end
+                    SendEvent2([0 0 0 0 1 1 1 1],dio);
+                    if mouse == 0
+                        Eyelink('Message', num2str([anode channel]));
+                    end
                 elseif keyCode(leftKey)
                     change_ind = 1;
                     leftmove = 1;
@@ -345,9 +353,10 @@ try
             [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
             if iteration == 1
                 vblstarttrial = VBLTimestamp;
-                SendEvent2([0 0 0 0 0 0 0 0],dio);
+                SendEvent2([1 0 0 0 0 0 0 0],dio); %uncomment to send
+                %events through parallel port
                 if mouse == 0
-                    Eyelink('Message', num2str([0 0 0 0 0 0 0 0]));
+                    Eyelink('Message', num2str([1 0 0 0 0 0 0 0]));
                 end
             end
             
@@ -393,7 +402,7 @@ try
                 timeIniFeedback = GetSecs;
                 
 %                 Snd('Play',rewardbeep);
-%                 SendEvent2([0 0 0 0 0 1 1 0]);
+%                  SendEvent2([0 0 0 0 0 1 1 0], dio);
 %                 Eyelink('Message', num2str([0 0 0 0 0 1 1 0]));
 %                 
 %                 if rand<=rewardprob
@@ -457,9 +466,9 @@ try
                 
                 incorrectTrial = incorrectTrial + 1;
                 
-%                 Snd('Play',failurebeep);
-%                 SendEvent2([0 0 0 0 0 1 1 1]);
-%                 Eyelink('Message', num2str([0 0 0 0 0 1 1 1]));
+                Snd('Play',failurebeep);
+                SendEvent2([0 0 0 0 0 1 1 1], dio);
+                Eyelink('Message', num2str([0 0 0 0 0 1 1 1]));
                 
                 while GetSecs - timeIniFeedback < feedbackTime
                     iteration = iteration + 1;
@@ -530,10 +539,10 @@ try
             timeIniFeedback = GetSecs;
             
 %             Snd('Play',rewardbeep);
-%             SendEvent2([0 0 0 0 1 0 0 0]);
+%             SendEvent2([0 0 0 0 1 0 0 0], dio);
 %             Eyelink('Message', num2str([0 0 0 0 1 0 0 0]));
-% 
-%             usb_pulse(numreward,rewardduration)
+
+            %usb_pulse(numreward,rewardduration)
             
             iteration = 0;
             

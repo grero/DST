@@ -2,7 +2,6 @@ function myDST5(homeDir,results)
 global handle whichScreen
 KbName('UnifyKeyNames');
 %TODO: Allow smaller targets at the centre of the big targets
-%TODO: Make we use the same axis handle for all plots
 % + +   + +
 %  *     *
 % + +
@@ -10,10 +9,9 @@ KbName('UnifyKeyNames');
 % Trigger
 % (11000000) Start of Session 
 % (00000000) Start of Fixation period 
-% (00000010) Post-fixation period
 % (00000001) Start of Pre-Stimulus Period              
-% (10000000) Start of Target Stimulus
-% (01000000) Start of Distractor Stimulus
+% (10000000) Start of Target Stimulus (34 locations)    
+% (01000000) Start of Distractor Stimulus (34 locations) 
 % the first 6 bins encode the information the 34 locations 
 % 00 (000,000) (x,y)
 % eg. (4,5) square is represented by (100,101), 
@@ -27,7 +25,6 @@ KbName('UnifyKeyNames');
 % (00100000) End of Trial
 
 % (00001111) Start of Microstimulation
-% (00001000) Manual reward
 
 %%% Save parameters in Results file
 
@@ -101,25 +98,10 @@ interDur = results.parameters.interdur; %uSec
 stimprob = results.parameters.stimprob;
 Rate = results.parameters.rate; %Hz
 StimRef = results.parameters.stimref; % 1= pre-stim, 2= target 3= delay, 4= response
-prestimratio = results.parameters.prestimratio;
-squareTimeONratio = results.parameters.squareTimeONratio;
-interSquareTimeratio = results.parameters.interSquareTimeratio;
-%should stimulaition change the length of the delay period
-delayratio = results.parameters.delayratio;
-RTratio = results.parameters.RTratio;
-timeOnTargetratio = results.parameters.timeOnTargetratio;
 
 rewardbeep = MakeBeep(2000,0.2);
 failurebeep = MakeBeep(100,0.2);
 Snd('Open')
-
-%attempt to get the current commit
-code_version = '';
-if exist('getGitInfo')
-    [pathstr,~,~] = fileparts((mfilename('fullpath')));
-    gg = getGitInfo(pathstr);
-    code_version = gg.hash;
-end
 
 if blocknum == 0
     blocknum = 1000;
@@ -189,8 +171,9 @@ try
     %whichScreen = 2;
     
     if mouse == 1
-        whichScreen = 1;
+        whichScreen = 0;
     end
+    whichScreen = 1;
     % Open a new window.
     [ window, windowRect ] = Screen('OpenWindow', whichScreen,backgroundColor);
     
@@ -199,6 +182,7 @@ try
     
     squareArea = floor((windowRect(4)-windowRect(4)/10)/numDivisionsGrid(2));
     buffersize = round(squareArea*(respondsizeratio - 1));
+    % diffsize = round((squareArea - squareSize)/2);
     diffsize = round((squareArea - squareArea)/2);
     
     while squareArea*numDivisionsGrid(1) > windowRect(3)
@@ -340,14 +324,25 @@ try
     % Create a Digital I/O Object with the digitalio function
     dio.io.ioObj = io32();
     dio.io.status = io32(dio.io.ioObj);
+    % dio=digitalio('parallel','lpt1');
+    % Add lines to a Digital I/O Object
+    % addline(dio,0,2,'out');
+    % addline(dio,0:7,0,'out'); % add the hardware lines 0 until 7 from port 0 to the digital object dio
+    %clear the lines
+    % putvalue(dio,zeros(1,9));
+    %reward object
+    % AO = analogoutput('nidaq','Dev2');
+    % Add channels  Add one channel to AO.
+    % addchannel(AO,0);
+    % Set the SampleRate
+    % set(AO,'SampleRate',8000);
     
-    SendEvent2([1 1 0 0 0 0 0 0],dio); %session start
+    SendEvent2([1 1 0 0 0 0 0 0],dio);
     ncols = bitget(numDivisionsGrid(1),1:6);
     nrows = bitget(numDivisionsGrid(2),1:6);
     SendEvent2([1 1 ncols],dio); %maximum column
     SendEvent2([1 1 nrows],dio); %maximum row
     if mouse == 0
-        Eyelink('Message',sunm2str([1 1 0 0 0 0 0 0]));
         Eyelink('Message', num2str([1 1 ncols nrows]));
     end
     
@@ -423,19 +418,17 @@ try
         elseif present_alllocations == 1
             locationIndexShuffled = Shuffle(distractor_locationsIndex);
         end
+        % locationsTrial = [cuelocationsIndexShuffled(blTrial),locationIndexShuffled(1:numDistractors)];
         stim_sequence_locationindex = locationIndexShuffled(1:length(stim_sequence));
         for x = 1:length(targetindex)
             stim_sequence_locationindex(targetindex(x)) = cuelocationsIndexShuffled(randi(length(cuelocationsIndexShuffled),1,1));
         end
-				%what targets and distractors will be presented in this trial
         locationsTrial = [cuelocationsIndexShuffled(blTrial),stim_sequence_locationindex];
         
-				%get the actual position of the target on the screen
         xOffset = squareArea*(locations(locationsTrial(1),1)-1)+fromX;
         yOffset = squareArea*(locations(locationsTrial(1),2)-1)+fromY;
         cueRect = OffsetRect(cueRectOriginal, xOffset, yOffset);
         cueSizeRect = [cueRect(1)+diffsize cueRect(2)+diffsize cueRect(3)-diffsize cueRect(4)-diffsize];
-				%for the experimenter screen
         cue_X = [cueSizeRect(1) cueSizeRect(1) cueSizeRect(3) cueSizeRect(3)];
         cue_Y = windowRect(4) - [cueSizeRect(2) cueSizeRect(4) cueSizeRect(4) cueSizeRect(2)];
         
@@ -452,8 +445,6 @@ try
                 [posX,posY,buttons] = GetMouse(window);
             end
             
-						%TODO: what if the monkey blinks?
-						%is the eye poisition within the central fixation window
             if posX > fixAreaRect(1) && posX < fixAreaRect(3) && posY > fixAreaRect(2) && posY < fixAreaRect(4)
                 if inFixation == 0
                     fixationIni = GetSecs;
@@ -468,17 +459,26 @@ try
                 end
             end
 
-						%TODO: also check if we are in fixation
             if GetSecs - fixationIni > timeFixation
                 startTask = 1;
                 break;
             end
-           	
-					 dobreak = checkforkeys	;
-					 if dobreak
-						 break
-					 end
-					 %should the target appear with the fixation spot?	
+            
+            [ keyIsDown, seconds, keyCode ] = KbCheck; %#ok<*ASGLU>
+            if keyIsDown
+                if keyCode(escapeKey)
+                    save(filename,'results');
+                    continueTask = 0;
+                    inTask = 0;
+                    break;
+                elseif keyCode(spaceKey)
+                    spacecount = spacecount + 1;
+                elseif keyCode(rKey)
+                    manualreward = 1;
+                    break;
+                end
+            end
+            
             if prestimcontrastlevel ~= 0
                 Screen('FillRect', window,[((255-100)*prestimcontrastlevel/100) + 100 ((0-100)*prestimcontrastlevel/100) + 100  ((0-100)*prestimcontrastlevel/100) + 100], cueSizeRect);
             end
@@ -493,7 +493,7 @@ try
             [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
             if iteration == 1
                 vblstarttrial = VBLTimestamp;
-                SendEvent2([0 0 0 0 0 0 0 0],dio); %trial start
+                SendEvent2([0 0 0 0 0 0 0 0],dio);
                 estarttrial = GetSecs;
                 if mouse == 0
                     Eyelink('Message', num2str([0 0 0 0 0 0 0 0]));
@@ -528,15 +528,26 @@ try
 
         prestim = rand*(maxprestim-minprestim) + minprestim;
         timefixationend = GetSecs;
-        while GetSecs < (timefixationend + prestim+(prestim*(prestimratio-1)*stimulation)) && inTask == 1
+        while GetSecs < timefixationend + prestim && inTask == 1
             
             iteration = iteration +1;
             trialHasStarted = 1;
             
-						dobreak = checkforkeys
-						if dobreak
-							break;
-						end
+            % Check for escape command
+            [ keyIsDown, seconds, keyCode ] = KbCheck;
+            if keyIsDown
+                if keyCode(escapeKey)
+                    save(filename,'results');
+                    continueTask = 0;
+                    inTask = 0;
+                    break;
+                elseif keyCode(spaceKey)
+                    spacecount = spacecount + 1;
+                elseif keyCode(rKey)
+                    manualreward = 1;
+                    break;
+                end
+            end
 
             % Check for fixation. If not, abort trial
             if mouse == 0
@@ -564,7 +575,7 @@ try
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 if iteration == 1
                     vblprestim = VBLTimestamp;
-                    SendEvent2([0 0 0 0 0 0 0 1],dio); %pre stimulus
+                    SendEvent2([0 0 0 0 0 0 0 1],dio);
                     eprestim = GetSecs;
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 0 0 0 1]));
@@ -592,7 +603,6 @@ try
                 '    Manual Reward = ',num2str(totalmanualreward_count)])
                 drawnow
             else
-							%TODO: use buffer time here to allow the monkey to drift outside the fixation for a short period
                 if breakFixation == 0
                     breakFixation = GetSecs - timeSessionStarts;
                     blkincompleteTrial = blkincompleteTrial + 1;
@@ -607,7 +617,6 @@ try
             if StimRef == 1 && stimprob ~= 0
                 if GetSecs > timefixationend + Stimulation_onset && stimulation == 0
                     if rand < stimprob
-                        SendEvent2([0 0 0 0 1 1 1 1],dio); %stimulation
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -621,8 +630,33 @@ try
         
         %% PRESENT CUE AND DISTRACTORS
         
+        % Select number of distractors and locations
+%         numDistractors = rangeDistractors(1):rangeDistractors(2);
+%         numDistractors = numDistractors(ceil(rand*length(numDistractors)));
+%         numAddTargets = 0:maxAddTargets;
+%         numAddTargets = numAddTargets(ceil(rand*length(numAddTargets)));
+% 
+%         stim_sequence = [ones(1,numAddTargets),2*ones(1,numDistractors)];
+%         stim_sequence = stim_sequence(randperm(length(stim_sequence)));
+%         targetindex = find(stim_sequence == 1);
+%         
+%         locationIndexShuffled = Shuffle(setdiff(locationsIndex,cuelocationsIndexShuffled(blTrial)));
+%         % locationsTrial = [cuelocationsIndexShuffled(blTrial),locationIndexShuffled(1:numDistractors)];
+%         locationsTrial = [cuelocationsIndexShuffled(blTrial),locationIndexShuffled(1:length(stim_sequence))];
+        
         % FIRST PRESENT CUE
         timeStartCue = GetSecs;
+        
+%         xOffset = squareArea*(locations(locationsTrial(1),1)-1)+fromX;
+%         yOffset = squareArea*(locations(locationsTrial(1),2)-1)+fromY;
+%         cueRect = OffsetRect(cueRectOriginal, xOffset, yOffset);
+%         cueSizeRect = [cueRect(1)+diffsize cueRect(2)+diffsize cueRect(3)-diffsize cueRect(4)-diffsize];
+%         cue_X = [cueSizeRect(1) cueSizeRect(1) cueSizeRect(3) cueSizeRect(3)];
+%         cue_Y = windowRect(4) - [cueSizeRect(2) cueSizeRect(4) cueSizeRect(4) cueSizeRect(2)];
+        
+        %         cueRectwithbuffer = [cueRect(1)-buffersize cueRect(2)-buffersize cueRect(3)+buffersize cueRect(4)+buffersize];
+        %         cue_Xwithbuffer = [cueRectwithbuffer(1) cueRectwithbuffer(1) cueRectwithbuffer(3) cueRectwithbuffer(3)];
+        %         cue_Ywithbuffer = windowRect(4) - [cueRectwithbuffer(2) cueRectwithbuffer(4) cueRectwithbuffer(4) cueRectwithbuffer(2)];
         
         if ~isempty(targetindex)
             xOffset1 = squareArea*(locations(locationsTrial(targetindex(end)+1),1)-1)+fromX;
@@ -649,16 +683,26 @@ try
             iteration = 0;
             squareTimeON = rand*(maxsquareTimeON-minsquareTimeON) + minsquareTimeON;
 
-            while GetSecs < (timeStartCue + squareTimeON + (squareTimeON*(squareTimeONratio-1)*stimulation)) && inTask == 1
+            while GetSecs < timeStartCue + squareTimeON && inTask == 1
 
                 iteration = iteration + 1;
                 % trialHasStarted = 1;
 
                 % Check for escape command
-								dobreak = checkforkeys;
-								if dobreak
-									break;
-								end
+                [ keyIsDown, seconds, keyCode ] = KbCheck;
+                if keyIsDown
+                    if keyCode(escapeKey)
+                        save(filename,'results');
+                        continueTask = 0;
+                        inTask = 0;
+                        break;
+                    elseif keyCode(spaceKey)
+                        spacecount = spacecount + 1;
+                    elseif keyCode(rKey)
+                        manualreward = 1;
+                        break;
+                    end
+                end
 
                 % Check for fixation. If not, abort trial
                 if mouse == 0
@@ -674,6 +718,7 @@ try
                 if posX > fixAreaRect(1) && posX < fixAreaRect(3) && posY > fixAreaRect(2) && posY < fixAreaRect(4)
 
                     % Present cue
+                    % Screen('FillRect', window, targetColor, cueSizeRect);
                     if stimcontrastlevel ~= 0
                         Screen('FillRect', window,[((255-100)*stimcontrastlevel/100) + 100 ((0-100)*stimcontrastlevel/100) + 100  ((0-100)*stimcontrastlevel/100) + 100], cueSizeRect);
                     end
@@ -742,7 +787,6 @@ try
                 if StimRef == 2 && stimprob ~= 0
                     if (GetSecs > (timeStartCue + Stimulation_onset)) && stimulation == 0
                         if rand < stimprob
-                            SendEvent2([0 0 0 0 1 1 1 1],dio); %stimulation
                             if mouse == 0
                                 Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                                 Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -772,15 +816,26 @@ try
                     interSquareTime = rand*(maxinterSquareTime-mininterSquareTime) + mininterSquareTime;
                     
                     timeIniDistractor = GetSecs;
-                    while GetSecs < (timeIniDistractor + interSquareTime + (interSquareTime*(interSquareTimeratio-1)*stimulation)) && inTask == 1
+                    while GetSecs < timeIniDistractor + interSquareTime && inTask == 1
 
                         iteration = iteration + 1;
 
                         % Check for escape command
-												dobreak = checkforkeys;
-												if dobreak
-													break
-												end
+                        [ keyIsDown, seconds, keyCode ] = KbCheck;
+                        if keyIsDown
+                            if keyCode(escapeKey)
+                                save(filename,'results');
+                                continueTask = 0;
+                                inTask = 0;
+                                break;
+                            elseif keyCode(spaceKey)
+                                spacecount = spacecount + 1;
+                            elseif keyCode(rKey)
+                                manualreward = 1;
+                                break;
+                            end
+                        end
+                        
                         % Check for fixation. If not, abort trial
                         if mouse == 0
                             
@@ -805,7 +860,7 @@ try
                             
                             if iteration == 1
                                 vblblank(1,d) = VBLTimestamp;
-                                SendEvent2([0 0 0 0 0 0 1 1],dio); %stim blank
+                                SendEvent2([0 0 0 0 0 0 1 1],dio);
                                 eblank(1,d) = GetSecs;
                                 if mouse == 0
                                     Eyelink('Message', num2str([0 0 0 0 0 0 1 1]));
@@ -854,15 +909,26 @@ try
                 iteration = 0;
                 
                 timeIniDistractor = GetSecs;
-                while GetSecs < (timeIniDistractor + squareTimeON + (squareTimeON*(squareTimeONratio-1)*stimulation)) && inTask == 1
+                while GetSecs < timeIniDistractor + squareTimeON && inTask == 1
                     
                     iteration = iteration + 1;
                     
                     % Check for escape command
-										dobreak = checkforkeys;
-										if dobreak
-											break
-										end
+                    [ keyIsDown, seconds, keyCode ] = KbCheck;
+                    if keyIsDown
+                        if keyCode(escapeKey)
+                            save(filename,'results');
+                            continueTask = 0;
+                            inTask = 0;
+                            break;
+                        elseif keyCode(spaceKey)
+                            spacecount = spacecount + 1;
+                        elseif keyCode(rKey)
+                            manualreward = 1;
+                            break;
+                        end
+                    end
+
                     % Check for fixation. If not, abort trial
                     if mouse == 0
                         
@@ -987,15 +1053,26 @@ try
             delay = rand*(maxdelay-mindelay) + mindelay;
         end
         timeIniPreresponse = GetSecs;
-        while GetSecs < (timeIniPreresponse + delay + (delay*(delayratio-1)*stimulation)) && inTask == 1
+        while GetSecs < timeIniPreresponse + delay && inTask == 1
 
             iteration = iteration + 1;
             
             % Check for escape command
-						dobreak = checkforkeys;
-						if dobreak
-							break
-						end
+            [ keyIsDown, seconds, keyCode ] = KbCheck;
+            if keyIsDown
+                if keyCode(escapeKey)
+                    save(filename,'results');
+                    continueTask = 0;
+                    inTask = 0;
+                    break;
+                elseif keyCode(spaceKey)
+                    spacecount = spacecount + 1;
+                elseif keyCode(rKey)
+                    manualreward = 1;
+                    break;
+                end
+            end
+            
             % Check for fixation. If not, abort trial
             if mouse == 0
                 
@@ -1024,7 +1101,7 @@ try
                 
                 if iteration == 1
                     vbldelay = VBLTimestamp;
-                    SendEvent2([0 0 0 0 0 1 0 0],dio); %delay period
+                    SendEvent2([0 0 0 0 0 1 0 0],dio);
                     edelay = GetSecs;
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 0 1 0 0]));
@@ -1068,7 +1145,6 @@ try
             if StimRef == 3 && stimprob ~= 0
                 if GetSecs > timeIniPreresponse + Stimulation_onset && stimulation == 0
                     if rand < stimprob
-                        SendEvent2([0 0 0 0 1 1 1 1],dio); %stimulation
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -1099,16 +1175,26 @@ try
             
             % oldFontSize = Screen(window,'TextSize',300);                    
             iteration = iteration + 1;
-            if GetSecs - timeIniResponse > (rangeRT(2)/1000 + (rangeRT(2)/1000*(RTratio-1)*stimulation))
+            if GetSecs - timeIniResponse > rangeRT(2)/1000
                 responded = 1;
-                % continue;
             end
             
             % Check for escape command
-						dobreak = checkforkeys;
-						if dobreak
-							break
-						end
+            [ keyIsDown, seconds, keyCode ] = KbCheck;
+            if keyIsDown
+                if keyCode(escapeKey)
+                    save(filename,'results');
+                    continueTask = 0;
+                    inTask = 0;
+                    break;
+                elseif keyCode(spaceKey)
+                    spacecount = spacecount + 1;
+                elseif keyCode(rKey)
+                    manualreward = 1;
+                    break;
+                end
+            end
+            
             % Check for correct response.
             if mouse == 0
                 
@@ -1177,11 +1263,11 @@ try
                     timeReachTarget = GetSecs;
                 end
                 
-                if GetSecs - timeReachTarget > (timeOnTarget + (timeOnTarget*(timeOnTargetratio-1)*stimulation))
+                if GetSecs - timeReachTarget > timeOnTarget
                     responded = 1;
                     reward = 1;
                     continue;
-
+                    
                     %%%%%%% reward %%%%%%%
                 end
                 % Wait period
@@ -1198,11 +1284,25 @@ try
                     ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 
+                if eyemvt == 1
+                    i = 0;
+                    mvcol = [];
+                    while i<size(eyeRect,1)
+                        i = i+1;
+                        if vel(i)>=sac_threshold
+                            mvcol = [mvcol; saccol];
+                        else
+                            mvcol = [mvcol; fixcol];
+                        end
+                        Screen('FillOval', window, mvcol(i,:), eyeRect(i,:));
+                    end
+                end
+                % Screen('Flip', window);
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 
                 if iteration == 1
                     vblrespond = VBLTimestamp;
-                    SendEvent2([0 0 0 0 0 1 0 1],dio); %response
+                    SendEvent2([0 0 0 0 0 1 0 1],dio);
                     erespond = GetSecs;
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 0 1 0 1]));
@@ -1220,18 +1320,22 @@ try
                 axis([windowRect(1),windowRect(3),windowRect(2),windowRect(4)])
                 plotGridLines(numDivisionsGrid,squareArea,fromX,toX,fromY,toY)
 
-                title(['Block ', num2str(ceil(whichTrial/numLocations)),'  Trial ', num2str(blTrial),'  Block: ',num2str(blkcorrectTrial),'/',...
+              title(['Block ', num2str(ceil(whichTrial/numLocations)),'  Trial ', num2str(blTrial),'  Block: ',num2str(blkcorrectTrial),'/',...
                 num2str(blkincorrectTrial),'/',num2str(blkincompleteTrial),'  Total: ',num2str(totalcorrectTrial),'/',...
                 num2str(totalincorrectTrial),'/',num2str(totalincompleteTrial), '  (' num2str(100*totalcorrectTrial/(totalincorrectTrial+totalcorrectTrial)) '%)',...
                 '    Manual Reward = ',num2str(totalmanualreward_count)])
                 drawnow
             else
+%                 if wrongTarget == 0 && startTask == 1 && timeReachTarget == inf
+%                     wrongTarget = GetSecs - timeSessionStarts;
+%                 end
                 if responded == 0
                     wrongTarget = GetSecs - timeSessionStarts;
                 end
                 timeReachTarget = inf;
                 % Wait period
                 if responsecontrastlevel ~= 0
+                    % Screen('FillRect', window, [(255-100)/(101-tarcontrastlevel)+100 (0-100)/(101-tarcontrastlevel)+100 (0-100)/(101-tarcontrastlevel)+100], cueSizeRect);
                     Screen('FillRect', window,[((255-100)*responsecontrastlevel/100) + 100 ((0-100)*responsecontrastlevel/100) + 100  ((0-100)*responsecontrastlevel/100) + 100], cueSizeRect);
                 end
                 
@@ -1241,11 +1345,25 @@ try
                     ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                 end
                 
+                if eyemvt == 1
+                    i = 0;
+                    mvcol = [];
+                    while i<size(eyeRect,1)
+                        i = i+1;
+                        if vel(i)>=sac_threshold
+                            mvcol = [mvcol; saccol];
+                        else
+                            mvcol = [mvcol; fixcol];
+                        end
+                        Screen('FillOval', window, mvcol(i,:), eyeRect(i,:));
+                    end
+                end
+                % Screen('Flip', window);
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 
                 if iteration == 1
                     vblrespond = VBLTimestamp;
-                    SendEvent2([0 0 0 0 0 1 0 1],dio); %response
+                    SendEvent2([0 0 0 0 0 1 0 1],dio);
                     erespond = GetSecs;
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 0 1 0 1]));
@@ -1274,7 +1392,6 @@ try
             if StimRef == 4 && stimprob ~= 0
                 if GetSecs > timeIniResponse + Stimulation_onset && stimulation == 0
                     if rand < stimprob
-                        SendEvent2([0 0 0 0 1 1 1 1],dio); %stim
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 1 1 1 1]));
                             Eyelink('Message', num2str([channel, Rate, first_pulseamp, second_pulseamp, first_pulseDur, second_pulseDur, interDur, numPulses]));
@@ -1291,7 +1408,7 @@ try
 %             results.reward(trialsStarted,1) = reward;
 %         end
         
-        if manualreward == 0
+         if manualreward == 0
             if reward == 1
                 
                 timeIniFeedback = GetSecs;
@@ -1303,8 +1420,12 @@ try
                 whichTrial = whichTrial + 1;
                 sessionstarted = 0;
                 
+                % Snd('Play',rewardbeep);
+                % % SendEvent2([0 0 0 0 0 1 1 0]);
+                
                 while GetSecs - timeIniFeedback < feedbackTime
                     iteration = iteration + 1;
+                    % Screen('FillOval', window, [0 0 255], fixRect);
                     if respond_center == 0
                         ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
                     else
@@ -1314,7 +1435,7 @@ try
                     
                     if iteration == 1
                         vblreward = VBLTimestamp;
-                        SendEvent2([0 0 0 0 0 1 1 0],dio); %reward
+                        SendEvent2([0 0 0 0 0 1 1 0],dio);
                         ereward = GetSecs;
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 0 1 1 0]));
@@ -1377,6 +1498,8 @@ try
                     end
                     
                 end
+                % Snd('Play',failurebeep);
+                % % SendEvent2([0 0 0 0 0 1 1 1]);
                 
                 timeIniFeedback = GetSecs;
                 while GetSecs - timeIniFeedback < feedbackTime
@@ -1389,11 +1512,14 @@ try
                         ScreenGridCenters(window,numDivisionsGrid,locations,squareArea, X_rect, Y_rect,normBoundsRect,fixcol);
                     end
                     [X,Y] = RectCenter(windowRect);
+                    % oldFontSize = Screen(window,'TextSize',800);
+                    % Screen('DrawText', window, 'x', X-320, Y-650, [255 0 0]);
+                    % Screen('FillOval', window, [255 0 0], fixRect);
                     [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                     
                     if iteration == 1
                         vblfail = VBLTimestamp;
-                        SendEvent2([0 0 0 0 0 1 1 1],dio); %failure
+                        SendEvent2([0 0 0 0 0 1 1 1],dio);
                         efail = GetSecs;
                         if mouse == 0
                             Eyelink('Message', num2str([0 0 0 0 0 1 1 1]));
@@ -1443,6 +1569,7 @@ try
             
             while GetSecs - timeIniFeedback < feedbackTime
                 iteration = iteration + 1;
+                % Screen('FillOval', window, [0 0 255], fixRect);
                 if respond_center == 0
                     ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
                 else
@@ -1451,7 +1578,7 @@ try
                 [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', window);
                 
                 if iteration == 1
-                    SendEvent2([0 0 0 0 1 0 0 0],dio); %manual reward
+                    SendEvent2([0 0 0 0 1 0 0 0],dio);
                     if mouse == 0
                         Eyelink('Message', num2str([0 0 0 0 1 0 0 0]));
                     end
@@ -1497,10 +1624,22 @@ try
         %% PENALTY IF ANIMAL MOVE OUTSIDE THE FIXATION WINDOW
         timeIniPen = GetSecs;
         while GetSecs - timeIniPen < penalty && inTask == 0
-						dobreak = checkforkeys;
-						if dobreak
-							break
-						end
+
+            [ keyIsDown, seconds, keyCode ] = KbCheck;
+            if keyIsDown
+                if keyCode(escapeKey)
+                    save(filename,'results');
+                    continueTask = 0;
+                    inTask = 0;
+                    break;
+                elseif keyCode(spaceKey)
+                    spacecount = spacecount + 1;
+                elseif keyCode(rKey)
+                    manualreward = 1;
+                    break;
+                end
+            end
+            
             if respond_center == 0
                 ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
             else
@@ -1533,15 +1672,30 @@ try
             drawnow
         end
         
+%         if trialHasStarted == 1
+%             results.breakFixation(trialsStarted) = breakFixation;
+%             results.wrongTarget(trialsStarted) = wrongTarget;
+%         end
+        
         %% POST TRIAL INTERVAL
         ITI = rand*(maxITI-minITI) + minITI;
         timeIniPTI = GetSecs;
         while GetSecs - timeIniPTI < ITI
 
-						dobreak = checkforkeys;
-						if dobreak
-							break;
-						end
+            [ keyIsDown, seconds, keyCode ] = KbCheck;
+            if keyIsDown
+                if keyCode(escapeKey)
+                    save(filename,'results');
+                    continueTask = 0;
+                    inTask = 0;
+                    break;
+                elseif keyCode(spaceKey)
+                    spacecount = spacecount + 1;
+                elseif keyCode(rKey)
+                    manualreward = 1;
+                    break;
+                end
+            end
             
             if respond_center == 0
                 ScreenGridLines(window,numDivisionsGrid,squareArea,fromX,toX,fromY,toY,gridcontrast,backgroundColor)
@@ -1574,7 +1728,7 @@ try
                 '    Manual Reward = ',num2str(totalmanualreward_count)])
             drawnow
         end
-				SendEvent2([0 0 1 0 0 0 0 0],dio); %end of trial
+        SendEvent2([0 0 1 0 0 0 0 0],dio);
         if mouse == 0
             Eyelink('Message', num2str([0 0 1 0 0 0 0 0]));
         end
@@ -1616,7 +1770,7 @@ try
         results.erespond(whichTrial) = erespond;
         results.ereward(whichTrial) = ereward;
         results.efail(whichTrial) = efail;
-        results.code_version = code_version;
+        
         save(filename,'results')
     end
     
@@ -1628,6 +1782,7 @@ try
         err = PS_StopStimAllChannels(1);
         err = PS_CloseStim(1);
     end
+    %IOPort('CloseAll');
 catch %#ok<CTCH>
     Screen('CloseAll');
     clear dio
@@ -1636,6 +1791,7 @@ catch %#ok<CTCH>
         err = PS_StopStimAllChannels(1);
         err = PS_CloseStim(1);
     end
+    %IOPort('CloseAll');
     psychrethrow(psychlasterror);
 end
 
@@ -1710,20 +1866,3 @@ for linesY = 1:numDivisionsGrid(1)+1
         end
     end
 end
-
-function dobreak = checkforkeys
-	dobreak = 0;
-	[ keyIsDown, seconds, keyCode ] = KbCheck;
-	if keyIsDown
-			if keyCode(escapeKey)
-					save(filename,'results');
-					continueTask = 0;
-					inTask = 0;
-					dobreak = 1;
-			elseif keyCode(spaceKey)
-					spacecount = spacecount + 1;
-			elseif keyCode(rKey)
-					manualreward = 1;
-					dobreak = 1;
-			end
-	end

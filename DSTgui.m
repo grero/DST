@@ -53,7 +53,7 @@ function DSTgui_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to DSTgui (see VARARGIN)
 global whichScreen
-whichScreen = 2;
+whichScreen = 1;
 % Choose save command line output for DSTgui
 handles.output = hObject;
 
@@ -84,7 +84,7 @@ function start_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-homeDir = 'C:\Users\neuro\Desktop\DST_files';
+homeDir = 'C:\Users\User\Desktop\dst\'; %DST_files
 % homeDir = '/Volumes/Chimera/Users/elebjh/Desktop';
 % homeDir = '~/Desktop';
 cd(homeDir)
@@ -115,6 +115,7 @@ results.parameters.buffertime = handles.metricdata.buffertime/1000;
 results.parameters.fixSize = handles.metricdata.fixsize;
 results.parameters.fixArea = handles.metricdata.fixwin;
 results.parameters.fixcol = handles.metricdata.fixcol;
+results.parameters.stimref = handles.metricdata.stimref;
 results.parameters.timeFixation = handles.metricdata.minfix/1000;
 results.parameters.horgnum = handles.metricdata.horgnum;
 results.parameters.vergnum = handles.metricdata.vergnum;
@@ -136,16 +137,18 @@ results.parameters.fixtime = handles.metricdata.fixtime;
 results.parameters.prestimcontrast = handles.metricdata.prestimcontrast;
 results.parameters.stimcontrast = handles.metricdata.stimcontrast;
 results.parameters.responsecontrast = handles.metricdata.responsecontrast;
-results.parameters.cathode = handles.metricdata.cathode;
+results.parameters.channel = handles.metricdata.channel;
 results.parameters.anode = handles.metricdata.anode;
 results.parameters.serialport = handles.metricdata.serialport;
-results.parameters.baudrate = handles.metricdata.baudrate;
-results.parameters.pulsemag = handles.metricdata.pulsemag;
-results.parameters.pulsedur = handles.metricdata.pulsedur;
+results.parameters.rate = handles.metricdata.rate;
+results.parameters.first_pulseamp = handles.metricdata.first_pulseamp;
+results.parameters.second_pulseamp = handles.metricdata.second_pulseamp;
+results.parameters.first_pulsedur = handles.metricdata.first_pulsedur;
+results.parameters.second_pulsedur = handles.metricdata.second_pulsedur;
 results.parameters.numpulses = handles.metricdata.numpulses;
 results.parameters.interdur = handles.metricdata.interdur;
 results.parameters.stimprob = handles.metricdata.stimprob;
-results.parameters.stimonset = handles.metricdata.stimonset;
+results.parameters.stimonset = handles.metricdata.stimonset/1000;
 results.parameters.savefilename_ext = handles.metricdata.savefilename_ext;
 % results.parameters.eyedatafile = handles.metricdata.eyedatafile;
 results.parameters.date = date;
@@ -551,12 +554,14 @@ set(handles.maxcorrecttrials,  'String', handles.metricdata.maxcorrecttrials);
 set(handles.prestimcontrast,  'String', handles.metricdata.prestimcontrast);
 set(handles.stimcontrast,  'String', handles.metricdata.stimcontrast);
 set(handles.responsecontrast,  'String', handles.metricdata.responsecontrast);
-set(handles.cathode, 'String', handles.metricdata.cathode);
+set(handles.channel, 'String', handles.metricdata.channel);
 set(handles.anode, 'String', handles.metricdata.anode);
 set(handles.serialport, 'String', handles.metricdata.serialport);
-set(handles.baudrate, 'String', handles.metricdata.baudrate);
-set(handles.pulsemag, 'String', handles.metricdata.pulsemag);
-set(handles.pulsedur, 'String', handles.metricdata.pulsedur);
+set(handles.rate, 'String', handles.metricdata.rate);
+set(handles.first_pulseamp, 'String', handles.metricdata.first_pulseamp);
+set(handles.second_pulseamp, 'String', handles.metricdata.second_pulseamp);
+set(handles.first_pulsedur, 'String', handles.metricdata.first_pulsedur);
+set(handles.second_pulsedur, 'String', handles.metricdata.second_pulsedur);
 set(handles.numpulses, 'String', handles.metricdata.numpulses);
 set(handles.interdur, 'String', handles.metricdata.interdur);
 set(handles.stimprob, 'String', handles.metricdata.stimprob);
@@ -698,6 +703,7 @@ handles.metricdata.maxcorrecttrials  = maxcorrecttrials;
 handles.metricdata.selected_target_locations  = selected_target_locations;
 handles.metricdata.selected_distractor_locations  = selected_distractor_locations;
 handles.metricdata.fixcol = [255 255 255];
+handles.metricdata.stimref = 1;
 handles.metricdata.targetcol = [255 0 0];
 handles.metricdata.distractorcol  = [0 255 0];
 handles.metricdata.mouse  = 0;
@@ -706,16 +712,18 @@ handles.metricdata.fixtime  = 0;
 handles.metricdata.prestimcontrast  = prestimcontrast;
 handles.metricdata.stimcontrast  = stimcontrast;
 handles.metricdata.responsecontrast  = responsecontrast;
-handles.metricdata.cathode  = 1;
+handles.metricdata.channel  = 1;
 handles.metricdata.anode  = 2;
 handles.metricdata.serialport = 'COM7';
-handles.metricdata.baudrate = 2400;
-handles.metricdata.pulsemag = 10;
-handles.metricdata.pulsedur = 200;
-handles.metricdata.numpulses = 45;
-handles.metricdata.interdur = 4200;
-handles.metricdata.stimprob = 0.8;
-handles.metricdata.stimonset = 1000;
+handles.metricdata.rate = 100;
+handles.metricdata.first_pulseamp = 100;
+handles.metricdata.second_pulseamp = -100;
+handles.metricdata.first_pulsedur = 50;
+handles.metricdata.second_pulsedur = 50;
+handles.metricdata.numpulses = 0;
+handles.metricdata.interdur = 25;
+handles.metricdata.stimprob = 0;
+handles.metricdata.stimonset = 100;
 handles.metricdata.savefilename_ext = savefilename_ext;
 
 set(handles.fixation, 'String', handles.metricdata.fixation);
@@ -759,8 +767,8 @@ all_handles = [handles.fixation,handles.minfix,handles.minprestim,handles.maxpre
     ,handles.maxiti,handles.fixsize,handles.fixwin,handles.fixcol,handles.horgnum,handles.vergnum,handles.gridcontrast,handles.respondsizeratio,handles.maxnumtarget,handles.mindistractor...
     ,handles.maxdistractor,handles.rewardprob,handles.rewardduration,handles.manualrewardduration,handles.blocknum,handles.maxcorrecttrials,handles.mouse...
     ,handles.respond_center,handles.targetcol,handles.distractorcol,handles.buffertime,handles.fixtime,handles.prestimcontrast,handles.stimcontrast,handles.responsecontrast...
-    ,handles.savefilename_ext,handles.cathode,handles.anode,handles.serialport,handles.baudrate,handles.pulsemag,handles.pulsedur,handles.numpulses...
-    ,handles.interdur,handles.stimprob,handles.stimonset];
+    ,handles.savefilename_ext,handles.channel,handles.anode,handles.serialport,handles.rate,handles.first_pulseamp,handles.second_pulseamp,handles.first_pulsedur,handles.second_pulsedur,handles.numpulses...
+    ,handles.interdur,handles.stimprob,handles.stimonset,handles.stimref];
 
 set(all_handles,'Enable','off');
 
@@ -786,6 +794,9 @@ end
 horgnum = handles.metricdata.horgnum;
 vergnum = handles.metricdata.vergnum;
 
+if (horgnum > 31) || (vergnum > 31)
+    error('The maximum grid size is 31x31')
+end
 % Create and hide the GUI figure as it is being constructed.
 width = 350;
 height= 350;
@@ -897,6 +908,10 @@ end
 
 horgnum = handles.metricdata.horgnum;
 vergnum = handles.metricdata.vergnum;
+
+if (horgnum > 31) || (vergnum > 31)
+    error('The maximum grid size is 31x31')
+end
 
 % Create and hide the GUI figure as it is being constructed.
 width = 350;
@@ -1011,15 +1026,15 @@ all_handles = [handles.fixation,handles.minfix,handles.minprestim,handles.maxpre
     ,handles.maxiti,handles.fixsize,handles.fixwin,handles.fixcol,handles.horgnum,handles.vergnum,handles.gridcontrast,handles.respondsizeratio,handles.maxnumtarget,handles.mindistractor...
     ,handles.maxdistractor,handles.rewardprob,handles.rewardduration,handles.manualrewardduration,handles.blocknum,handles.maxcorrecttrials,handles.mouse...
     ,handles.respond_center,handles.targetcol,handles.distractorcol,handles.buffertime,handles.fixtime,handles.prestimcontrast,handles.stimcontrast,handles.responsecontrast...
-    ,handles.savefilename_ext,handles.cathode,handles.anode,handles.serialport,handles.baudrate,handles.pulsemag,handles.pulsedur,handles.numpulses...
-    ,handles.interdur,handles.stimprob,handles.stimonset];
+    ,handles.savefilename_ext,handles.channel,handles.anode,handles.serialport,handles.rate,handles.first_pulseamp,handles.second_pulseamp,handles.first_pulsedur,handles.second_pulsedur,handles.numpulses...
+    ,handles.interdur,handles.stimprob,handles.stimonset,handles.stimref];
 
 switch str{val};
     case 'Set 1' % User selects Peaks.
         handles.metricdata.trainstep = 1;
         on_handles = [handles.fixation,handles.minfix,handles.feedback,handles.miniti,handles.maxiti,handles.fixsize,handles.rewardprob...
-            ,handles.rewardduration,handles.manualrewardduration,handles.fixwin,handles.fixcol,handles.mouse,handles.cathode,handles.anode...
-            ,handles.serialport,handles.baudrate,handles.pulsemag,handles.pulsedur,handles.numpulses, handles.interdur,handles.stimprob,handles.stimonset,handles.savefilename_ext];
+            ,handles.rewardduration,handles.manualrewardduration,handles.fixwin,handles.fixcol,handles.mouse,handles.channel,handles.anode...
+            ,handles.serialport,handles.rate,handles.first_pulseamp,handles.second_pulseamp,handles.first_pulsedur,handles.second_pulsedur,handles.numpulses, handles.interdur,handles.stimprob,handles.stimonset,handles.savefilename_ext];
         
         set(all_handles,'Enable','off');
         set(on_handles,'Enable','on');
@@ -1059,7 +1074,8 @@ switch str{val};
             ,handles.maxiti,handles.fixsize,handles.fixwin,handles.fixcol,handles.horgnum,handles.vergnum,handles.gridcontrast,handles.respondsizeratio,handles.maxnumtarget,handles.mindistractor...
             ,handles.maxdistractor,handles.rewardprob,handles.rewardduration,handles.manualrewardduration,handles.blocknum,handles.maxcorrecttrials,handles.mouse...
             ,handles.respond_center,handles.targetcol,handles.distractorcol,handles.buffertime,handles.fixtime,handles.prestimcontrast,handles.stimcontrast,handles.responsecontrast...
-            ,handles.savefilename_ext];
+            ,handles.savefilename_ext,handles.channel,handles.rate,handles.first_pulseamp,handles.second_pulseamp,handles.first_pulsedur,handles.second_pulsedur,handles.numpulses...
+            ,handles.interdur,handles.stimprob,handles.stimonset,handles.stimref];
         set(all_handles,'Enable','off');
         set(on_handles,'Enable','on');
         
@@ -1116,8 +1132,6 @@ switch str{val};
         handles.metricdata.monkeyname = 'P';
     case 'James' % User selects Peaks.
         handles.metricdata.monkeyname = 'J';
-    case 'Picasso' % User selects Peaks.
-        handles.metricdata.monkeyname = 'Q';
 
 end
 guidata(hObject,handles)
@@ -1134,7 +1148,7 @@ function monkeyname_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-set(hObject, 'String', {'Pancake','James','Picasso'});
+set(hObject, 'String', {'Pancake','James'});
 
 % function loadfile_Callback(hObject, eventdata, handles)
 % % hObject    handle to trainstep (see GCBO)
@@ -2351,25 +2365,25 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function cathode_Callback(hObject, eventdata, handles)
+function channel_Callback(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of blocknum as text
 %        str2double(get(hObject,'String')) returns contents of blocknum as a double
-cathode = str2double(get(hObject, 'String'));
-if isnan(cathode)
+channel = str2double(get(hObject, 'String'));
+if isnan(channel)
     set(hObject, 'String', 0);
     errordlg('Input must be a number','Error');
 end
 
 % Save the new mintarget value
-handles.metricdata.cathode = cathode;
+handles.metricdata.channel = channel;
 guidata(hObject,handles)
 
 % --- Executes during object creation, after setting all properties.
-function cathode_CreateFcn(hObject, eventdata, handles)
+function channel_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -2438,25 +2452,25 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function baudrate_Callback(hObject, eventdata, handles)
+function rate_Callback(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of blocknum as text
 %        str2double(get(hObject,'String')) returns contents of blocknum as a double
-baudrate = str2double(get(hObject, 'String'));
-if isnan(baudrate)
+rate = str2double(get(hObject, 'String'));
+if isnan(rate)
     set(hObject, 'String', 0);
     errordlg('Input must be a number','Error');
 end
 
 % Save the new mintarget value
-handles.metricdata.baudrate = baudrate;
+handles.metricdata.rate = rate;
 guidata(hObject,handles)
 
 % --- Executes during object creation, after setting all properties.
-function baudrate_CreateFcn(hObject, eventdata, handles)
+function rate_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -2467,25 +2481,25 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function pulsemag_Callback(hObject, eventdata, handles)
+function first_pulseamp_Callback(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of blocknum as text
 %        str2double(get(hObject,'String')) returns contents of blocknum as a double
-pulsemag = str2double(get(hObject, 'String'));
-if isnan(pulsemag)
+first_pulseamp = str2double(get(hObject, 'String'));
+if isnan(first_pulseamp)
     set(hObject, 'String', 0);
     errordlg('Input must be a number','Error');
 end
 
 % Save the new mintarget value
-handles.metricdata.pulsemag = pulsemag;
+handles.metricdata.first_pulseamp = first_pulseamp;
 guidata(hObject,handles)
 
 % --- Executes during object creation, after setting all properties.
-function pulsemag_CreateFcn(hObject, eventdata, handles)
+function first_pulseamp_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -2496,25 +2510,83 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function pulsedur_Callback(hObject, eventdata, handles)
+function first_pulsedur_Callback(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of blocknum as text
 %        str2double(get(hObject,'String')) returns contents of blocknum as a double
-pulsedur = str2double(get(hObject, 'String'));
-if isnan(pulsedur)
+first_pulsedur = str2double(get(hObject, 'String'));
+if isnan(first_pulsedur)
     set(hObject, 'String', 0);
     errordlg('Input must be a number','Error');
 end
 
 % Save the new mintarget value
-handles.metricdata.pulsedur = pulsedur;
+handles.metricdata.first_pulsedur = first_pulsedur;
 guidata(hObject,handles)
 
 % --- Executes during object creation, after setting all properties.
-function pulsedur_CreateFcn(hObject, eventdata, handles)
+function first_pulsedur_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to blocknum (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function second_pulseamp_Callback(hObject, eventdata, handles)
+% hObject    handle to blocknum (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of blocknum as text
+%        str2double(get(hObject,'String')) returns contents of blocknum as a double
+second_pulseamp = str2double(get(hObject, 'String'));
+if isnan(second_pulseamp)
+    set(hObject, 'String', 0);
+    errordlg('Input must be a number','Error');
+end
+
+% Save the new mintarget value
+handles.metricdata.second_pulseamp = second_pulseamp;
+guidata(hObject,handles)
+
+% --- Executes during object creation, after setting all properties.
+function second_pulseamp_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to blocknum (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function second_pulsedur_Callback(hObject, eventdata, handles)
+% hObject    handle to blocknum (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of blocknum as text
+%        str2double(get(hObject,'String')) returns contents of blocknum as a double
+second_pulsedur = str2double(get(hObject, 'String'));
+if isnan(second_pulsedur)
+    set(hObject, 'String', 0);
+    errordlg('Input must be a number','Error');
+end
+
+% Save the new mintarget value
+handles.metricdata.second_pulsedur = second_pulsedur;
+guidata(hObject,handles)
+
+% --- Executes during object creation, after setting all properties.
+function second_pulsedur_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -2611,6 +2683,42 @@ function stimprob_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+function stimref_Callback(hObject, eventdata, handles)
+% hObject    handle to targetcol (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns targetcol contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from targetcol
+str = get(hObject, 'String');
+val = get(hObject,'Value');
+
+switch str{val};
+    case 'PreStim'
+        handles.metricdata.stimref = 1;
+    case 'Target' 
+        handles.metricdata.stimref = 2;
+    case 'Delay'
+        handles.metricdata.stimref = 3;
+    case 'Response'
+        handles.metricdata.stimref = 4;
+end
+guidata(hObject,handles)
+
+% --- Executes during object creation, after setting all properties.
+function stimref_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to targetcol (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+set(hObject, 'String', {'PreStim','Target','Delay','Response'});
 
 function stimonset_Callback(hObject, eventdata, handles)
 % hObject    handle to blocknum (see GCBO)
